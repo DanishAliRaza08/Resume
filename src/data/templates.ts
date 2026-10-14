@@ -1,0 +1,781 @@
+// Starter project templates (spec §7). These are illustrative phrasing patterns, NOT evidence of a
+// candidate's experience. Every bullet generated from a template is marked `requiresConfirmation`
+// until the user confirms it accurately describes the candidate's work.
+//
+// Placeholders:
+//   {client}        – the confirmed employer/client for the project
+//   {subdomain}     – the project subdomain
+//   {tech:Category} – confirmed project technologies from that catalog category; a bullet whose
+//                     placeholder cannot be filled from confirmed technologies is skipped, so a
+//                     template can never introduce a tool the candidate has not confirmed.
+
+import type { DomainKey } from "./domains";
+
+export interface TemplateSeed {
+  name: string;
+  domain: DomainKey;
+  subdomain: string;
+  projectPattern: string;
+  domainBullets: string[];
+  projectBullets: string[];
+  qaBullets: string[];
+  terminology: string[];
+  suggestedTech: string[];
+  excludedClaims: string[];
+}
+
+const COMMON_EXCLUDED = [
+  "Quantified business outcomes (%, $) unless supplied by the candidate",
+  "Certifications not recorded on the candidate profile",
+  "Named client platforms not confirmed by the candidate",
+];
+
+export const TEMPLATES: TemplateSeed[] = [
+  // ---------------- Banking ----------------
+  {
+    name: "Capital Markets Trade Processing and Reconciliation",
+    domain: "BANKING",
+    subdomain: "Capital Markets",
+    projectPattern: "Trade capture, lifecycle events, settlement and reconciliation for front-to-back capital markets operations.",
+    domainBullets: [
+      "Analyzed end-to-end trade lifecycle workflows for {subdomain} operations, covering trade capture, confirmation, clearing, and settlement.",
+      "Documented reconciliation rules between front-office trading systems and back-office books and records to support break resolution.",
+      "Worked with trading, operations, and compliance stakeholders to clarify business rules for reportable trade scenarios.",
+    ],
+    projectBullets: [
+      "Gathered and documented business requirements for trade-processing workflows and translated them into functional specifications.",
+      "Collaborated with business and technology stakeholders to clarify functional rules and acceptance criteria.",
+      "Created user stories and maintained requirement traceability in {tech:Project Management}.",
+      "Performed data checks and reconciliation analysis using {tech:Databases} to validate trade and position data.",
+      "Mapped trade data attributes from {tech:Domain Platforms} to downstream reporting and settlement systems.",
+      "Maintained process maps, decision logs, and change documentation aligned to project standards.",
+      "Defined exception-handling workflows for failed trades and settlement breaks.",
+      "Built monitoring views in {tech:Reporting & BI} to track trade break volumes and ageing.",
+      "Facilitated requirement walkthroughs with development teams to resolve open questions before sprint commitment.",
+    ],
+    qaBullets: [
+      "Coordinated UAT scenarios, defect triage, and sign-off activities for trade-processing releases.",
+      "Reviewed SIT and regression test cases against functional requirements to confirm coverage.",
+    ],
+    terminology: ["trade lifecycle", "clearing and settlement", "reconciliation", "fixed income", "equities"],
+    suggestedTech: ["SQL", "JIRA", "Confluence", "Murex", "Calypso", "Tableau"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Commercial Lending Platform Modernization (Loan IQ)",
+    domain: "BANKING",
+    subdomain: "Commercial Lending",
+    projectPattern: "Loan origination, servicing, syndication and agency processing on a commercial lending platform.",
+    domainBullets: [
+      "Analyzed commercial lending processes spanning loan origination, servicing, syndications, participations, and agency services.",
+      "Documented requirements for fee handling, interest accruals, and payment distributions across facility structures.",
+      "Supported credit approval and disbursement workflow definitions with lending operations and credit risk teams.",
+    ],
+    projectBullets: [
+      "Defined business requirements for {tech:Domain Platforms} enhancements covering deals, facilities, and servicing events.",
+      "Authored user stories and acceptance criteria for lending platform enhancements and new module functionality.",
+      "Drove data mapping for migrating loan portfolio data, including cleansing rules and transformation logic.",
+      "Used {tech:Databases} for data querying and validation of migrated loan, facility, and borrower records.",
+      "Modeled as-is and to-be lending processes using {any:BPMN|UML} to identify inefficiencies.",
+      "Facilitated requirements workshops with lending operations, credit, and technology teams.",
+      "Specified integration requirements for credit bureau, document management, and regulatory reporting interfaces.",
+      "Maintained requirement traceability matrices and evidence logs to support audit readiness.",
+      "Produced portfolio reports and dashboards in {tech:Reporting & BI} for lending stakeholders.",
+    ],
+    qaBullets: [
+      "Planned and coordinated UAT for lending workflows, supporting business users through execution and sign-off.",
+      "Participated in defect triage and SIT for lending platform releases to confirm requirement coverage.",
+    ],
+    terminology: ["loan origination", "loan servicing", "syndicated loans", "credit risk"],
+    suggestedTech: ["Loan IQ", "AFS Vision", "SQL", "BPMN", "JIRA", "Tableau"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Digital Banking and P2P Payments",
+    domain: "BANKING",
+    subdomain: "Digital Banking",
+    projectPattern: "Customer-facing digital banking features such as onboarding, payments, and wallets.",
+    domainBullets: [
+      "Defined functional scope for digital banking journeys including customer onboarding, fund transfers, and account servicing.",
+      "Documented requirements for integrating payment services with payment rails and the core banking system.",
+      "Worked with fraud prevention and compliance teams to define business rules for transaction monitoring and KYC onboarding.",
+    ],
+    projectBullets: [
+      "Led requirements elicitation through workshops and interviews with product, operations, security, and compliance stakeholders.",
+      "Translated business needs into user stories with testable acceptance criteria for the Agile delivery team.",
+      "Created process flows and wireframes in {any:Figma|Balsamiq|Microsoft Visio|Lucidchart} to visualize key customer journeys.",
+      "Specified API integration requirements using {tech:Integrations} for third-party payment providers.",
+      "Managed the product backlog with the Product Owner, prioritizing features and refining requirements.",
+      "Participated in Agile ceremonies as the liaison between business stakeholders and the delivery team.",
+      "Used {tech:Databases} for ad-hoc analysis of customer payment behavior to inform feature design.",
+      "Maintained functional specifications and requirement history in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Served as primary point of contact for QA, clarifying requirements and expected system behavior.",
+      "Supported UAT execution for digital banking releases and tracked defects through resolution.",
+    ],
+    terminology: ["payments", "ach", "kyc", "fraud detection", "core banking"],
+    suggestedTech: ["JIRA", "Confluence", "REST APIs", "Figma", "SQL"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Regulatory Reporting Implementation",
+    domain: "BANKING",
+    subdomain: "Regulatory Reporting",
+    projectPattern: "Translating regulatory obligations into reporting requirements, data sourcing, and controls.",
+    domainBullets: [
+      "Translated regulatory reporting obligations into business requirements and functional specifications.",
+      "Collaborated with compliance and legal teams to interpret regulatory clauses and agree reportable scenarios.",
+      "Defined data requirements for reportable instruments, counterparties, and transaction attributes.",
+    ],
+    projectBullets: [
+      "Orchestrated data mapping from source trading and reference data systems to the central reporting engine.",
+      "Designed exception handling and reconciliation processes between source systems and submitted reports.",
+      "Defined requirements for monitoring dashboards in {tech:Reporting & BI} tracking reporting timeliness and completeness.",
+      "Used {tech:Databases} for data profiling of source systems and validation of reporting logic.",
+      "Authored user stories and acceptance criteria covering ingestion, validation, enrichment, and report generation.",
+      "Modeled as-is and to-be reporting workflows to identify data capture gaps.",
+      "Managed requirements and sprint progress in {tech:Project Management}.",
+      "Applied a hybrid Agile-Waterfall approach for regulatory analysis and iterative delivery.",
+    ],
+    qaBullets: [
+      "Authored test cases covering reporting scenarios, validation rules, and report generation logic.",
+      "Supported SIT and UAT with compliance and operations teams prior to regulatory go-live.",
+    ],
+    terminology: ["regulatory reporting", "mifid", "dodd-frank", "reconciliation"],
+    suggestedTech: ["SQL", "JIRA", "Confluence", "Microsoft Excel", "Microsoft Visio"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "AML/KYC Transaction Monitoring Enhancement",
+    domain: "BANKING",
+    subdomain: "AML/KYC",
+    projectPattern: "Financial crime prevention: transaction monitoring, customer due diligence, sanctions screening, case management.",
+    domainBullets: [
+      "Conducted gap analysis of AML transaction monitoring and KYC/CDD capabilities against regulatory expectations.",
+      "Defined requirements for customer risk scoring, monitoring scenarios, and alert investigation workflows.",
+      "Specified sanctions screening and watchlist integration requirements with compliance stakeholders.",
+    ],
+    projectBullets: [
+      "Authored BRDs and functional specifications for financial crime system enhancements.",
+      "Facilitated workshops with compliance officers, investigators, data teams, and IT security.",
+      "Defined case management requirements for alert investigation, documentation, and SAR filing.",
+      "Specified data sourcing, data quality controls, and lineage requirements for monitoring inputs.",
+      "Used {tech:Databases} to analyze transaction patterns and profile monitoring data sources.",
+      "Configured or documented monitoring rules within {tech:Domain Platforms}.",
+      "Created BPMN process models and data flow diagrams in {any:Microsoft Visio|Lucidchart}.",
+      "Ensured design addressed data privacy and security requirements for sensitive customer data.",
+    ],
+    qaBullets: [
+      "Participated in SIT and led UAT with compliance and operations teams for the upgraded monitoring system.",
+      "Validated alert generation scenarios against documented rules prior to release.",
+    ],
+    terminology: ["aml", "kyc", "sanctions screening", "fraud detection"],
+    suggestedTech: ["NICE Actimize", "Oracle Mantas", "SQL", "JIRA", "Confluence"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+
+  // ---------------- Retail ----------------
+  {
+    name: "Omnichannel Point of Sale Modernization",
+    domain: "RETAIL",
+    subdomain: "Point of Sale",
+    projectPattern: "Store POS replacement and omnichannel transactions (buy online, pick up in store, returns).",
+    domainBullets: [
+      "Analyzed store checkout, payment, and returns processes to define requirements for a modernized POS experience.",
+      "Defined omnichannel scenarios including buy-online-pick-up-in-store, ship-from-store, and cross-channel returns.",
+      "Worked with store operations, loss prevention, and finance stakeholders to agree transaction and tender rules.",
+    ],
+    projectBullets: [
+      "Gathered and documented business requirements for POS transactions, promotions, and tender handling.",
+      "Authored user stories and acceptance criteria for POS and store-system enhancements.",
+      "Mapped transaction data flows from POS to {tech:Domain Platforms} and downstream sales audit.",
+      "Used {tech:Databases} to analyze transaction logs and validate pricing and promotion outcomes.",
+      "Specified integration requirements with payment, loyalty, and inventory systems using {tech:Integrations}.",
+      "Facilitated requirement workshops with store operations and technology teams.",
+      "Documented as-is and to-be store processes to support rollout planning.",
+      "Built store performance reporting in {tech:Reporting & BI}.",
+    ],
+    qaBullets: [
+      "Coordinated pilot-store UAT, tracking defects and sign-off before chain-wide rollout.",
+      "Reviewed regression test coverage for pricing, promotions, and returns scenarios.",
+    ],
+    terminology: ["point of sale", "omnichannel", "returns", "promotions", "store operations"],
+    suggestedTech: ["NCR POS", "SQL", "JIRA", "REST APIs", "Power BI"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "E-commerce Platform and Order Management",
+    domain: "RETAIL",
+    subdomain: "E-commerce",
+    projectPattern: "Digital storefront, checkout, and order orchestration.",
+    domainBullets: [
+      "Defined requirements for digital customer journeys covering product discovery, cart, checkout, and order tracking.",
+      "Documented order orchestration rules for fulfillment, split shipments, cancellations, and returns.",
+      "Partnered with merchandising and marketing teams to define product content and promotion requirements.",
+    ],
+    projectBullets: [
+      "Authored user stories and acceptance criteria for storefront and checkout features.",
+      "Specified order management integration requirements between {tech:Domain Platforms} and fulfillment systems.",
+      "Analyzed customer behavior data using {tech:Reporting & BI} to prioritize journey improvements.",
+      "Used {tech:Databases} to validate order, payment, and fulfillment data across systems.",
+      "Documented API contracts with development teams using {tech:Integrations}.",
+      "Managed backlog refinement and sprint planning inputs with the Product Owner.",
+      "Created process flows and wireframes to communicate checkout and returns journeys.",
+      "Maintained requirement documentation and decisions in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Supported UAT for checkout and order management releases, triaging defects with delivery teams.",
+      "Validated end-to-end order scenarios across storefront, OMS, and fulfillment systems.",
+    ],
+    terminology: ["order management", "checkout", "fulfillment", "customer journey"],
+    suggestedTech: ["Salesforce Commerce Cloud", "Shopify", "SQL", "Google Analytics", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Inventory and Replenishment Optimization",
+    domain: "RETAIL",
+    subdomain: "Inventory Management",
+    projectPattern: "Inventory visibility, replenishment, and warehouse integration.",
+    domainBullets: [
+      "Analyzed inventory visibility and replenishment processes across distribution centers and stores.",
+      "Defined requirements for stock adjustments, transfers, cycle counts, and shrink reporting.",
+      "Worked with supply chain planners to document replenishment rules and demand inputs.",
+    ],
+    projectBullets: [
+      "Gathered requirements for inventory synchronization between {tech:Domain Platforms} and store systems.",
+      "Used {tech:Databases} to reconcile inventory positions and investigate stock discrepancies.",
+      "Built inventory and replenishment dashboards in {tech:Reporting & BI}.",
+      "Documented data mapping for item, location, and inventory transaction feeds.",
+      "Authored user stories and acceptance criteria for replenishment enhancements.",
+      "Facilitated workshops with supply chain, store operations, and IT teams.",
+      "Specified interface requirements for warehouse and transportation systems using {tech:Integrations}.",
+      "Maintained process documentation and change logs in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated UAT for inventory and replenishment releases with supply chain users.",
+      "Validated inventory data quality checks before production deployment.",
+    ],
+    terminology: ["inventory", "replenishment", "supply chain", "warehouse management"],
+    suggestedTech: ["SAP ERP", "Manhattan WMS", "SQL", "Tableau", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Merchandising and Assortment Planning",
+    domain: "RETAIL",
+    subdomain: "Merchandising",
+    projectPattern: "Assortment, pricing, and promotion planning tools for merchandising teams.",
+    domainBullets: [
+      "Documented merchandising processes for assortment planning, item setup, pricing, and promotions.",
+      "Defined requirements for product hierarchy and attribute management across channels.",
+      "Partnered with category managers to capture pricing and markdown business rules.",
+    ],
+    projectBullets: [
+      "Authored BRDs and user stories for merchandising system enhancements.",
+      "Analyzed sales and margin data using {tech:Databases} to support assortment decisions.",
+      "Built merchandising performance reporting in {tech:Reporting & BI}.",
+      "Mapped item and pricing data between {tech:Domain Platforms} and downstream systems.",
+      "Facilitated requirement sessions with merchandising, planning, and finance teams.",
+      "Documented as-is and to-be item setup workflows to reduce manual effort.",
+      "Tracked requirements and delivery progress in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Supported UAT for pricing and promotion changes with merchandising users.",
+      "Reviewed test scenarios for price change and markdown calculations.",
+    ],
+    terminology: ["merchandising", "assortment planning", "pricing", "promotions", "category management"],
+    suggestedTech: ["Oracle Retail", "SQL", "Excel", "Power BI"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Customer Analytics and Loyalty",
+    domain: "RETAIL",
+    subdomain: "Customer Analytics",
+    projectPattern: "Customer data, segmentation, loyalty program analytics and reporting.",
+    domainBullets: [
+      "Analyzed customer and loyalty data to support segmentation, retention, and campaign measurement.",
+      "Defined loyalty program business rules for enrollment, points accrual, and redemption.",
+      "Worked with marketing stakeholders to define customer KPIs and reporting needs.",
+    ],
+    projectBullets: [
+      "Wrote queries in {tech:Databases} to build customer, transaction, and campaign datasets.",
+      "Developed customer analytics dashboards in {tech:Reporting & BI}.",
+      "Documented data definitions, lineage, and KPI calculations for customer reporting.",
+      "Performed data analysis using {tech:Programming} to profile customer segments.",
+      "Gathered reporting requirements from marketing and loyalty teams.",
+      "Defined data quality rules for customer master data.",
+      "Tracked analytics requests and delivery in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Validated dashboard figures against source data before publishing to stakeholders.",
+      "Reviewed data pipeline outputs for completeness and accuracy.",
+    ],
+    terminology: ["loyalty", "customer journey", "omnichannel"],
+    suggestedTech: ["SQL", "Tableau", "Python", "Snowflake"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+
+  // ---------------- Healthcare ----------------
+  {
+    name: "EHR/EMR Implementation and Optimization",
+    domain: "HEALTHCARE",
+    subdomain: "EHR/EMR",
+    projectPattern: "Clinical workflow configuration and optimization in an electronic health record system.",
+    domainBullets: [
+      "Analyzed clinical workflows across scheduling, documentation, orders, and results to define EHR requirements.",
+      "Worked with clinicians, nursing, and administrative staff to document current and future-state workflows.",
+      "Ensured requirements addressed HIPAA privacy and security expectations for protected health information.",
+    ],
+    projectBullets: [
+      "Gathered and documented requirements for {tech:Domain Platforms} workflow enhancements.",
+      "Authored user stories and acceptance criteria for clinical and administrative functionality.",
+      "Mapped clinical data elements between the EHR and downstream reporting systems.",
+      "Used {tech:Databases} to validate clinical and operational data extracts.",
+      "Created workflow diagrams and training materials to support clinical adoption.",
+      "Facilitated requirement and design sessions with clinical and IT stakeholders.",
+      "Built operational reports in {tech:Reporting & BI} for clinical leadership.",
+      "Tracked requirements, issues, and change requests in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated UAT with clinical end users and tracked defects through resolution.",
+      "Reviewed integrated test scenarios across registration, clinical, and billing workflows.",
+    ],
+    terminology: ["ehr", "emr", "clinical workflows", "hipaa"],
+    suggestedTech: ["Epic", "Cerner", "SQL", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Claims Processing and Adjudication",
+    domain: "HEALTHCARE",
+    subdomain: "Claims",
+    projectPattern: "Payer claims intake, adjudication, and payment integrity.",
+    domainBullets: [
+      "Analyzed claims intake, adjudication, and payment processes to define system requirements.",
+      "Documented benefit configuration, pricing, and claim edit rules with operations stakeholders.",
+      "Defined requirements for EDI 837 claim intake and 835 remittance processing.",
+    ],
+    projectBullets: [
+      "Gathered requirements for claims system enhancements in {tech:Domain Platforms}.",
+      "Used {tech:Databases} to analyze claim data and investigate adjudication discrepancies.",
+      "Mapped EDI transactions and claim data elements between trading partners and the claims platform.",
+      "Authored user stories and acceptance criteria for claim edits and pricing changes.",
+      "Built claims operations reporting in {tech:Reporting & BI}.",
+      "Facilitated workshops with claims operations, provider relations, and IT teams.",
+      "Documented claims workflows and exception handling procedures.",
+      "Managed requirements and defects in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated UAT for claims configuration changes with operations users.",
+      "Validated claim test scenarios against expected adjudication outcomes.",
+    ],
+    terminology: ["claims", "claims adjudication", "edi 837", "edi 835"],
+    suggestedTech: ["Facets", "QNXT", "SQL", "EDI", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Patient Access and Revenue Cycle",
+    domain: "HEALTHCARE",
+    subdomain: "Patient Access",
+    projectPattern: "Registration, eligibility, authorization, and front-end revenue cycle processes.",
+    domainBullets: [
+      "Analyzed patient access processes including scheduling, registration, eligibility, and prior authorization.",
+      "Defined requirements to reduce registration errors and downstream claim denials.",
+      "Worked with revenue cycle leadership to document financial clearance workflows.",
+    ],
+    projectBullets: [
+      "Documented requirements for eligibility verification and authorization integrations using {tech:Integrations}.",
+      "Used {tech:Databases} to analyze registration and denial data.",
+      "Built revenue cycle dashboards in {tech:Reporting & BI}.",
+      "Authored user stories for patient access workflow enhancements in {tech:Domain Platforms}.",
+      "Facilitated requirement sessions with patient access and billing teams.",
+      "Mapped data flows between registration, scheduling, and billing systems.",
+      "Maintained requirement documentation in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Supported UAT for patient access changes with front-desk and billing users.",
+      "Validated eligibility response handling across payer scenarios.",
+    ],
+    terminology: ["patient access", "eligibility", "prior authorization", "revenue cycle"],
+    suggestedTech: ["Epic", "SQL", "HL7", "Power BI"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Healthcare Interoperability (HL7/FHIR)",
+    domain: "HEALTHCARE",
+    subdomain: "Interoperability",
+    projectPattern: "Clinical data exchange between providers, payers, and partners using standards.",
+    domainBullets: [
+      "Defined interoperability requirements for clinical data exchange between internal and partner systems.",
+      "Documented message and resource specifications aligned to {tech:Domain Platforms} standards.",
+      "Worked with privacy and security teams to ensure data exchange met HIPAA requirements.",
+    ],
+    projectBullets: [
+      "Mapped clinical data elements across source systems and interface specifications.",
+      "Authored interface requirements and user stories for data exchange workflows.",
+      "Used {tech:Databases} to validate interface payloads and reconcile records.",
+      "Specified API requirements using {tech:Integrations} for partner integrations.",
+      "Facilitated design sessions with interface developers, clinicians, and partners.",
+      "Documented error handling and monitoring requirements for interface failures.",
+      "Tracked interface requirements and issues in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated interface testing with partners and validated message conformance.",
+      "Supported UAT of data exchange workflows with clinical users.",
+    ],
+    terminology: ["hl7", "fhir", "interoperability", "data quality"],
+    suggestedTech: ["HL7", "FHIR", "REST APIs", "SQL", "Postman"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Healthcare Reporting and Population Health Analytics",
+    domain: "HEALTHCARE",
+    subdomain: "Reporting",
+    projectPattern: "Quality measures, population health, and operational reporting.",
+    domainBullets: [
+      "Defined reporting requirements for quality measures, utilization, and population health programs.",
+      "Documented data definitions and measure logic with clinical and quality stakeholders.",
+      "Ensured reporting design protected PHI through appropriate access controls.",
+    ],
+    projectBullets: [
+      "Wrote queries in {tech:Databases} to build patient, encounter, and claims datasets.",
+      "Built dashboards in {tech:Reporting & BI} for care management and quality teams.",
+      "Documented data lineage and measure calculations for audit and reproducibility.",
+      "Performed data analysis using {tech:Programming} to identify utilization trends.",
+      "Defined data quality checks for clinical and claims data feeds.",
+      "Gathered reporting requirements from clinical, quality, and finance stakeholders.",
+      "Tracked reporting requests in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Validated report outputs against source systems before release.",
+      "Reviewed data pipeline changes for regression in measure results.",
+    ],
+    terminology: ["population health", "data quality", "value-based care"],
+    suggestedTech: ["SQL", "Tableau", "Power BI", "Python"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+
+  // ---------------- Pharma ----------------
+  {
+    name: "Clinical Trial Management Systems",
+    domain: "PHARMA",
+    subdomain: "Clinical Trials",
+    projectPattern: "Study start-up, site management, and clinical data capture systems.",
+    domainBullets: [
+      "Analyzed clinical trial processes covering study start-up, site management, and data capture.",
+      "Documented requirements aligned to GCP and 21 CFR Part 11 expectations for electronic records.",
+      "Worked with clinical operations and data management teams to define study workflows.",
+    ],
+    projectBullets: [
+      "Gathered and documented requirements for {tech:Domain Platforms} configuration and enhancements.",
+      "Authored user requirements specifications and traceability to validation deliverables.",
+      "Mapped clinical data flows between EDC, CTMS, and downstream reporting.",
+      "Used {tech:Databases} to validate clinical data extracts and reconcile study records.",
+      "Facilitated requirement workshops with clinical operations, biostatistics, and IT.",
+      "Built study status reporting in {tech:Reporting & BI}.",
+      "Maintained controlled documentation and change records in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Supported validation testing and UAT for clinical system releases in line with GxP procedures.",
+      "Reviewed test scripts for traceability to user requirements.",
+    ],
+    terminology: ["clinical trials", "gcp", "21 cfr part 11", "edc", "ctms"],
+    suggestedTech: ["Medidata Rave", "Veeva Vault", "SQL", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Veeva Vault Quality and Regulatory Implementation",
+    domain: "PHARMA",
+    subdomain: "Regulatory Submissions",
+    projectPattern: "Regulated content management for quality and regulatory submissions.",
+    domainBullets: [
+      "Analyzed document control and regulatory submission processes for a regulated content platform.",
+      "Defined requirements for document lifecycles, approvals, and audit trails under GxP.",
+      "Worked with regulatory affairs and quality teams to capture submission planning needs.",
+    ],
+    projectBullets: [
+      "Documented configuration requirements for {tech:Domain Platforms} document types and workflows.",
+      "Mapped legacy document metadata for migration into the target platform.",
+      "Authored user stories and acceptance criteria for regulated workflows.",
+      "Facilitated workshops with regulatory, quality, and IT stakeholders.",
+      "Defined reporting needs for submission readiness in {tech:Reporting & BI}.",
+      "Maintained requirements traceability and change control documentation.",
+      "Tracked requirements and defects in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Supported IQ/OQ/PQ validation activities and UAT for regulated workflows.",
+      "Reviewed validation test scripts for coverage of user requirements.",
+    ],
+    terminology: ["regulatory submissions", "gxp", "audit trail", "change control"],
+    suggestedTech: ["Veeva Vault", "JIRA", "Confluence", "Microsoft Excel"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Laboratory Information Management (LIMS)",
+    domain: "PHARMA",
+    subdomain: "Laboratory (LIMS)",
+    projectPattern: "Laboratory sample, test, and results management in a validated LIMS.",
+    domainBullets: [
+      "Analyzed laboratory workflows covering sample management, testing, review, and release.",
+      "Defined requirements for audit trails and electronic signatures in line with 21 CFR Part 11.",
+      "Worked with QC laboratory teams to document specifications and result review rules.",
+    ],
+    projectBullets: [
+      "Gathered requirements for {tech:Domain Platforms} configuration of tests, specifications, and workflows.",
+      "Mapped instrument and system integrations with laboratory and quality systems.",
+      "Used {tech:Databases} to validate master data and migrated laboratory records.",
+      "Authored user requirements and functional specifications for laboratory processes.",
+      "Facilitated workshops with QC, QA, and IT stakeholders.",
+      "Maintained traceability between requirements, design, and test deliverables.",
+      "Tracked change requests in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Supported validation execution and UAT for LIMS releases following GxP procedures.",
+      "Reviewed deviations and test incidents raised during validation.",
+    ],
+    terminology: ["lims", "gxp", "audit trail", "21 cfr part 11"],
+    suggestedTech: ["LabWare LIMS", "LIMS", "SQL", "TrackWise"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Computer System Validation (CSV)",
+    domain: "PHARMA",
+    subdomain: "Computer System Validation",
+    projectPattern: "Risk-based validation of GxP computerized systems.",
+    domainBullets: [
+      "Supported risk-based computer system validation for GxP systems.",
+      "Documented user requirements, risk assessments, and traceability for validated systems.",
+      "Worked with quality assurance to align deliverables with validation procedures.",
+    ],
+    projectBullets: [
+      "Authored user requirements specifications and requirement traceability matrices.",
+      "Coordinated validation deliverables across business, IT, and quality teams.",
+      "Reviewed functional and design specifications for testability and compliance.",
+      "Supported change control and periodic review activities for validated systems.",
+      "Maintained controlled documentation in {tech:Domain Platforms}.",
+      "Tracked validation tasks and issues in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Reviewed and supported execution of IQ/OQ/PQ test scripts.",
+      "Documented and tracked deviations raised during validation testing.",
+    ],
+    terminology: ["computer system validation", "csv", "gxp", "iq/oq/pq", "capa"],
+    suggestedTech: ["HP ALM", "Veeva Vault", "TrackWise", "MasterControl"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Pharmacovigilance Safety Reporting",
+    domain: "PHARMA",
+    subdomain: "Pharmacovigilance",
+    projectPattern: "Adverse event intake, case processing, and safety reporting.",
+    domainBullets: [
+      "Analyzed adverse event intake, case processing, and safety reporting workflows.",
+      "Defined requirements for case data capture and regulatory reporting timelines.",
+      "Worked with safety and regulatory stakeholders to clarify reporting rules.",
+    ],
+    projectBullets: [
+      "Gathered requirements for {tech:Domain Platforms} configuration and enhancements.",
+      "Mapped case data between intake channels and the safety database.",
+      "Used {tech:Databases} to analyze case processing volumes and timeliness.",
+      "Built safety operations reporting in {tech:Reporting & BI}.",
+      "Authored user stories and acceptance criteria for case workflow changes.",
+      "Maintained requirements traceability for validated releases.",
+    ],
+    qaBullets: [
+      "Supported validation and UAT for safety system releases.",
+      "Reviewed test cases for case processing and reporting scenarios.",
+    ],
+    terminology: ["pharmacovigilance", "adverse events", "gxp"],
+    suggestedTech: ["Oracle Argus", "SQL", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+
+  // ---------------- P&C Insurance ----------------
+  {
+    name: "Policy Administration System Implementation",
+    domain: "PC_INSURANCE",
+    subdomain: "Policy Administration",
+    projectPattern: "Quote, bind, issue, endorse, and renew policies on a policy administration system.",
+    domainBullets: [
+      "Analyzed the policy lifecycle covering quote, bind, issuance, endorsements, cancellations, and renewals.",
+      "Defined product, coverage, and form requirements with underwriting and product teams.",
+      "Documented rating and eligibility rules for personal and commercial lines products.",
+    ],
+    projectBullets: [
+      "Gathered and documented requirements for {tech:Domain Platforms} configuration and enhancements.",
+      "Authored user stories and acceptance criteria for policy transactions.",
+      "Mapped policy data between the policy system, billing, and downstream reporting.",
+      "Used {tech:Databases} to validate policy, coverage, and premium data.",
+      "Specified integration requirements for rating, document, and agent portal systems using {tech:Integrations}.",
+      "Facilitated workshops with underwriting, product, and IT stakeholders.",
+      "Maintained requirements documentation in {tech:Project Management}.",
+      "Supported data conversion planning for in-force policies.",
+    ],
+    qaBullets: [
+      "Coordinated UAT for policy transactions and tracked defects through resolution.",
+      "Reviewed regression scenarios for rating and form changes.",
+    ],
+    terminology: ["policy administration", "policy lifecycle", "underwriting", "rating", "endorsements", "renewals"],
+    suggestedTech: ["Guidewire PolicyCenter", "Duck Creek", "SQL", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Claims Modernization (FNOL to Settlement)",
+    domain: "PC_INSURANCE",
+    subdomain: "Claims",
+    projectPattern: "First notice of loss through investigation, adjudication, payment, and recovery.",
+    domainBullets: [
+      "Analyzed claims processes from first notice of loss through investigation, adjudication, payment, and closure.",
+      "Defined requirements for reserves, payments, subrogation, and recovery workflows.",
+      "Worked with claims operations and adjusters to document assignment and segmentation rules.",
+    ],
+    projectBullets: [
+      "Gathered requirements for {tech:Domain Platforms} claims configuration and enhancements.",
+      "Authored user stories and acceptance criteria for FNOL and claim handling workflows.",
+      "Mapped claims data to downstream finance, reinsurance, and reporting systems.",
+      "Used {tech:Databases} to analyze claim cycle times and validate converted claims data.",
+      "Built claims operations dashboards in {tech:Reporting & BI}.",
+      "Specified third-party integration requirements using {tech:Integrations}.",
+      "Facilitated workshops with claims, finance, and IT stakeholders.",
+      "Tracked requirements and defects in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated UAT with adjusters and claims supervisors for claims releases.",
+      "Validated end-to-end claim scenarios across FNOL, payment, and recovery.",
+    ],
+    terminology: ["fnol", "first notice of loss", "claims adjudication", "subrogation"],
+    suggestedTech: ["Guidewire ClaimCenter", "SQL", "JIRA", "Tableau"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Underwriting Workbench and Rating",
+    domain: "PC_INSURANCE",
+    subdomain: "Underwriting",
+    projectPattern: "Underwriting submission intake, risk evaluation, and rating.",
+    domainBullets: [
+      "Analyzed underwriting submission intake, risk evaluation, referral, and approval workflows.",
+      "Documented rating algorithms and underwriting rules with product and actuarial teams.",
+      "Defined requirements for third-party data used in risk assessment.",
+    ],
+    projectBullets: [
+      "Gathered requirements for underwriting workflow configuration in {tech:Domain Platforms}.",
+      "Used {tech:Databases} to validate rating outcomes against expected premium calculations.",
+      "Authored user stories and acceptance criteria for referral and approval rules.",
+      "Built underwriting pipeline reporting in {tech:Reporting & BI}.",
+      "Specified data integration requirements with {tech:Integrations}.",
+      "Facilitated workshops with underwriters, actuaries, and IT.",
+      "Maintained requirement documentation in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated UAT for rating and underwriting rule changes.",
+      "Reviewed rating test cases for coverage of rate table changes.",
+    ],
+    terminology: ["underwriting", "rating", "quote", "actuarial"],
+    suggestedTech: ["Guidewire PolicyCenter", "ISO ERC", "SQL", "Excel"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Insurance Billing System Modernization",
+    domain: "PC_INSURANCE",
+    subdomain: "Billing",
+    projectPattern: "Premium billing, payment plans, collections, and disbursements.",
+    domainBullets: [
+      "Analyzed billing processes including invoicing, payment plans, delinquency, and disbursements.",
+      "Defined requirements for agency bill and direct bill scenarios.",
+      "Worked with finance and billing operations to document cash application rules.",
+    ],
+    projectBullets: [
+      "Gathered requirements for {tech:Domain Platforms} billing configuration.",
+      "Mapped billing data between policy, billing, and general ledger systems.",
+      "Used {tech:Databases} to reconcile billing and payment records.",
+      "Authored user stories and acceptance criteria for billing transactions.",
+      "Built billing operations reporting in {tech:Reporting & BI}.",
+      "Specified payment gateway integration requirements using {tech:Integrations}.",
+      "Tracked requirements in {tech:Project Management}.",
+    ],
+    qaBullets: [
+      "Coordinated UAT for billing releases with finance users.",
+      "Validated billing scenarios across payment plans and delinquency workflows.",
+    ],
+    terminology: ["billing", "premium"],
+    suggestedTech: ["Guidewire BillingCenter", "SQL", "JIRA"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+  {
+    name: "Broker and Agent Portal",
+    domain: "PC_INSURANCE",
+    subdomain: "Broker Portals",
+    projectPattern: "Self-service portal for brokers and agents to quote, service, and track policies.",
+    domainBullets: [
+      "Defined portal journeys for brokers and agents covering quoting, servicing, and document retrieval.",
+      "Documented requirements for submission intake using ACORD-aligned data.",
+      "Worked with distribution stakeholders to prioritize portal capabilities.",
+    ],
+    projectBullets: [
+      "Authored user stories and acceptance criteria for portal features.",
+      "Specified API integration requirements using {tech:Integrations} with policy and billing systems.",
+      "Created wireframes and journey maps in {any:Figma|Balsamiq|Lucidchart|Microsoft Visio}.",
+      "Used {tech:Databases} to analyze portal usage and submission data.",
+      "Facilitated workshops with agents, underwriters, and IT.",
+      "Documented access control and security requirements for external users.",
+      "Managed backlog refinement with the Product Owner.",
+    ],
+    qaBullets: [
+      "Supported UAT with pilot agencies and tracked feedback through resolution.",
+      "Reviewed test scenarios for portal integrations.",
+    ],
+    terminology: ["broker portal", "acord", "quote"],
+    suggestedTech: ["ACORD Standards", "REST APIs", "JIRA", "Figma"],
+    excludedClaims: COMMON_EXCLUDED,
+  },
+];
+
+// Role-specific project bullet patterns appended for engineering/QA/PM roles, which the
+// analyst-oriented domain templates do not cover. Same placeholder rules apply.
+export const ROLE_PROJECT_BULLETS: Record<string, string[]> = {
+  AWS_ENGINEER: [
+    "Provisioned and maintained cloud infrastructure on {tech:Cloud} for {subdomain} workloads.",
+    "Automated infrastructure deployment using {tech:Deployment}.",
+    "Built data and integration pipelines using {tech:Cloud} services.",
+    "Implemented monitoring, logging, and alerting for production services.",
+    "Applied least-privilege access controls and encryption for regulated data.",
+    "Developed automation scripts in {tech:Programming}.",
+    "Supported release management and production incident resolution.",
+  ],
+  QA_ENGINEER: [
+    "Designed test plans and test cases from {subdomain} business requirements.",
+    "Developed automated test scripts using {tech:Testing}.",
+    "Performed API testing using {tech:Integrations}.",
+    "Validated back-end data using {tech:Databases}.",
+    "Logged and tracked defects in {tech:Project Management}.",
+    "Executed regression suites for each release and reported quality metrics.",
+    "Integrated automated tests into pipelines using {tech:Deployment}.",
+  ],
+  PROJECT_MANAGER: [
+    "Planned and managed delivery scope, schedule, and dependencies for {subdomain} initiatives.",
+    "Maintained RAID logs and escalated risks and issues to steering committees.",
+    "Tracked delivery progress and reporting in {tech:Project Management}.",
+    "Facilitated Agile ceremonies and release planning with cross-functional teams.",
+    "Coordinated vendor, business, and technology stakeholders across workstreams.",
+    "Prepared status reports and executive updates for sponsors.",
+  ],
+};
+
+// {any:A|B} resolves to the first of the listed tools the candidate confirmed for the project.
+export const SUPPORTING_TOOL_BULLETS = [
+  "Managed user stories, sprint backlogs, and defect tracking in {any:JIRA|Azure DevOps|Rally}.",
+  "Maintained requirement documentation, meeting notes, and decision logs in {any:Confluence|SharePoint}.",
+  "Created process flow and system context diagrams using {any:Microsoft Visio|Lucidchart}.",
+  "Used {any:Microsoft Excel} for data mapping workbooks, requirement checklists, and issue logs.",
+  "Prepared wireframes and clickable mock-ups in {any:Figma|Balsamiq}.",
+  "Tracked project milestones and dependencies using {any:MS Project|Smartsheet}.",
+  "Followed {tech:Methodologies} delivery practices, contributing to sprint planning, reviews, and retrospectives.",
+  "Logged and prioritized change requests in {any:ServiceNow|JIRA|Azure DevOps} to keep scope transparent.",
+  "Published sprint progress summaries and release notes in {any:SharePoint|Confluence} for business stakeholders.",
+  "Coordinated distributed team updates through {any:Microsoft Teams|Slack}.",
+];
+
+export const PROFESSIONALISM_BULLETS = [
+  "Strong communicator who builds trusted working relationships with business and technology stakeholders.",
+  "Collaborative team member with a strong sense of ownership, accountability, and attention to detail.",
+  "Self-motivated professional known for clear communication, dependable follow-through, and a strong work ethic.",
+];
