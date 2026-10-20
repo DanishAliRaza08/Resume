@@ -19,7 +19,7 @@ export default async function ResetPage({ searchParams }: { searchParams: Promis
           </form>
         ) : (
           <form action={requestReset}>
-            <p className="muted small">An administrator can also issue a reset link from Administration → Users.</p>
+            <p className="muted small">Enter your account email and we will send you a link to set a new password.</p>
             <label htmlFor="email">Email</label>
             <input id="email" name="email" type="email" required />
             <div className="actions" style={{ marginTop: 16 }}>

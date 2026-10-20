@@ -4,7 +4,7 @@ import { prisma } from "@/lib/server/db";
 
 // Aggregated operational reporting (spec §17) — no candidate personal data is shown here.
 export default async function Reports() {
-  const user = await requireUser();
+  const user = await requireUser(["ADMIN"]);
   const since = new Date(Date.now() - 30 * 86400000);
   const [byDomainRole, jobs, exportsByFormat, versionsByStatus, clientStats, techCount, denied, deletions, matchStates, missing, firstVersions, exportTimes, editsAfterFirst] = await Promise.all([
     prisma.resume.groupBy({ by: ["domainKey", "roleKey"], _count: { _all: true } }),

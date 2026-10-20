@@ -10,7 +10,7 @@ export default async function UpdateExisting({ searchParams }: { searchParams: P
   const candidates = await prisma.candidate.findMany({ where: candidateScope(user), orderBy: { fullName: "asc" }, select: { id: true, fullName: true }, take: 300 });
   return (
     <>
-      <div className="pagehead"><div><h1>Update existing resume</h1><p>Upload a resume and a job description. The original is preserved as version 1; every proposed edit is traceable to evidence.</p></div></div>
+      <div className="pagehead"><div><h1>Tailor an existing resume</h1><p>Upload a resume and a job description. The original is preserved as version 1; every proposed edit is traceable to evidence.</p></div></div>
       <Flash searchParams={await searchParams} />
       <form action={importAndTailor} className="card">
         <h2>1. Existing resume</h2>

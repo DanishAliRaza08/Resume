@@ -22,6 +22,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <a href="/reset-password">Forgot password?</a>
           </div>
         </form>
+        <p style={{ marginTop: 16 }}>New here? <a href="/signup"><strong>Create a free account</strong></a></p>
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS = {
   maxPages: 6,
   defaultPageTarget: 4,
   defaultProjectMode: "STANDARD",
-  blockUnverifiedClientsOnApproval: true,
+  blockUnverifiedClientsOnApproval: false,
   aiEnabled: true,
 };
 export type Settings = typeof DEFAULT_SETTINGS;

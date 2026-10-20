@@ -72,9 +72,8 @@ suite("service acceptance tests (database)", () => {
     const content = structuredClone(v1.content) as { summary: { confirmed: boolean }[]; projects: { bullets: { confirmed: boolean }[] }[] };
     for (const b of [...content.summary, ...content.projects.flatMap((p) => p.bullets)]) b.confirmed = true;
     const v2 = await svc.saveVersion(creator, v1.resumeId, content, { parentVersionId: v1.id, changeNote: "confirm" });
-    await svc.transitionVersion(creator, v2.id, "IN_REVIEW");
-    await expect(svc.transitionVersion(creator, v2.id, "APPROVED")).rejects.toThrow(); // authors cannot approve
-    const approved = await svc.transitionVersion(reviewer, v2.id, "APPROVED");
+    await expect(svc.transitionVersion(creator2, v2.id, "APPROVED")).rejects.toThrow(perms.AccessDenied); // other users cannot
+    const approved = await svc.transitionVersion(creator, v2.id, "APPROVED"); // owners finalize their own resumes
     expect(approved.status).toBe("APPROVED");
     const edited = structuredClone(v2.content) as { header: { title: string } };
     edited.header.title = "Lead Business Analyst";
@@ -90,7 +89,12 @@ suite("service acceptance tests (database)", () => {
     const job = await svc.runGenerationJob((await svc.startGenerationJob(creator, { ...request(), mode: "FULL_DETAIL", pageTarget: 1 }, randomUUID())).id);
     const pdf = await exportSvc.exportVersion(creator, job.outputVersionId!, "PDF");
     expect(pdf.pageCount).toBeGreaterThan(1);
-    expect(pdf.record.fileName).toMatch(/_DRAFT\.pdf$/);
+    expect(pdf.record.fileName).toMatch(/_Resume_Classic_v1\.pdf$/);
+    expect(pdf.record.data?.length).toBeGreaterThan(1000); // stored in the database
+    const modern = await exportSvc.exportVersion(creator, job.outputVersionId!, "DOCX", "normal", "executive");
+    expect(modern.record.fileName).toContain("Executive");
+    const read = await exportSvc.readExport(creator, modern.record.id);
+    expect(read.buffer.subarray(0, 2).toString()).toBe("PK");
     const v = await prisma.resumeVersion.findUniqueOrThrow({ where: { id: job.outputVersionId! } });
     expect((v.validation as { compression: unknown[] }).compression.length).toBeGreaterThan(0);
   });

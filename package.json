@@ -13,7 +13,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "test:integration": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgresql://resume:resume@localhost:5432/resume_builder_test?schema=public} vitest run tests/integration.test.ts"
+    "test:integration": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgresql://resume:resume@localhost:5432/resume_builder_test?schema=public} vitest run tests/integration.test.ts",
+    "start:prod": "prisma migrate deploy && tsx prisma/seed.ts && next start",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -23,24 +25,29 @@
     "@prisma/client": "^6.19.3",
     "docx": "^9.5.1",
     "mammoth": "^1.10.0",
-    "next": "^15.5.27",
+    "next": "^15.5.28",
+    "nodemailer": "^10.1.7",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.17.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
     "@types/pdfkit": "^0.17.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "prisma": "^6.19.3",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=20"
+  },
+  "overrides": {
+    "postcss": "^8.5.30"
   }
 }

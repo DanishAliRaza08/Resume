@@ -13,44 +13,68 @@ employment, tools, credentials or outcomes.
 
 | Area | Highlights |
 | --- | --- |
-| **Create New Resume** (§5.1) | 5-step wizard: candidate → target role → five-project configuration → format → review & generate. It proposes a default timeline inside the verified employment span (P1 ≈ 2 yrs 3 mos, P2 2 yrs, P5 7 mos, P3/P4 share the rest). |
-| **Update Existing Resume** (§5.2) | Upload a DOCX, PDF or TXT resume plus a JD. The app extracts the text, rebuilds section structure and stores the original as v1. It then matches the JD against the evidence and proposes traceable edits that you accept, reject or edit. |
+| **Accounts** | Anyone can sign up and start building resumes straight away. Each account only sees its own people, resumes and job descriptions. |
+| **Create New Resume** (§5.1) | 5-step wizard: who it is for → target role → projects → design → review & generate. Client and company names are typed freely (with suggestions). It can also propose a default five-project timeline (P1 ≈ 2 yrs 3 mos, P2 2 yrs, P5 7 mos, P3/P4 share the rest). |
+| **Resume designs** | Seven designs: Classic, Modern, Executive, Minimal, Bold, Elegant and Compact. Each has a live thumbnail gallery, can be switched any time, and works for both PDF and Word downloads. All are single-column and ATS-readable. |
+| **Tailor Existing Resume** (§5.2) | Upload a DOCX, PDF or TXT resume plus a JD. The app extracts the text, rebuilds section structure and stores the original as v1. It then matches the JD against the evidence and proposes traceable edits that you accept, reject or edit. |
 | **Generation** (§6, §10) | Summary with varied openings, QA and professionalism bullets. Projects come in Full-detail, Standard or Concise mode, and the Technical Skills table depends on the role. Template placeholders resolve **only** to technologies the candidate confirmed, and every template bullet must be confirmed before approval. |
 | **Validation** (§10.3) | Five check layers: schema, factual, consistency, quality and layout. Factual checks cover unconfirmed claims, unsupported tools, unverified metrics, timeline overlaps and gaps, projects outside employment, and anachronistic tools. Consistency checks catch skills without evidence and years-of-experience mismatches. Quality checks cover near-duplicates, tense and repeated verbs. Layout checks estimate the page count. |
 | **Page count** (§6.5) | The page count is estimated before export, then measured on the rendered PDF. LibreOffice measures DOCX files when it is installed. Compression proposals need approval and come in a fixed order: spacing, then mode, then removing low-value template bullets. Candidate facts are never removed. |
 | **JD tailoring** (§9) | Requirements are classified as must-have, preferred, domain, responsibility, qualification or methodology, and normalized through the catalog's aliases. Each requirement is marked supported, partial, missing or needs-confirmation. The coverage score is weighted and transparent. Every edit records its evidence and decision. |
-| **Review workflow** (§5.3) | Draft → automated checks → human review → approved → exported. Authors cannot approve their own versions. Versions are immutable, so editing an approved version creates a new draft. |
+| **Finalize** (§5.3) | Draft → automated checks → finalized → downloaded. Owners finalize their own resumes once the checks pass; asking someone else to review is optional. Versions are immutable, so editing a final version creates a new draft. |
 | **Libraries** (§7, §8) | 25 versioned project templates (5 per domain), about 190 catalog technologies with aliases and availability years, and 118 client records. Client records support verification status, evidence, CSV import/export, deduplication, usage history and least-recently-used rotation. |
 | **Security** (§14) | Session auth with scrypt hashing, password reset and login throttling. Access is role- and record-level, and denied attempts are audited. Uploads are validated by type and signature, and embedded instructions are treated as data. Exports are stored privately and served through authenticated downloads. Sensitive fields are redacted from logs. |
 | **Operations** (§10.4, §17) | Generation jobs are idempotent and retryable, with tokens, cost and duration recorded. The Reports page shows aggregated operational data, and the admin page covers users, settings, retention and audit search. |
 
-Roles: **Administrator**, **Resume Creator**, **Reviewer** and **Read-only** (§4).
+Every sign-up gets a normal account with full resume features. The address in `ADMIN_EMAIL` gets
+administrator access, which adds reports, user management, settings, the audit trail and editing of
+the shared template, technology and client libraries. Reviewer and read-only roles still exist for
+teams that want them; an administrator assigns them.
 
-## Quick start
+## Quick start (local)
 
-Requirements: Node 20+ and PostgreSQL 14+. LibreOffice is optional; it gives accurate DOCX page counts.
+Requirements: Node 20+ and PostgreSQL 14+. LibreOffice is optional; it gives exact page counts for Word downloads.
 
 ```bash
 npm install
-cp .env.example .env            # set DATABASE_URL
-npx prisma migrate deploy       # create the schema
-npm run db:seed                 # reference data + demo workspace
-npm run build && npm start      # or: npm run dev
+cp .env.example .env            # set DATABASE_URL and ADMIN_EMAIL
+npm run build
+npm run start:prod              # applies migrations, loads reference data, starts on :3000
 ```
 
-Open http://localhost:3000 and sign in with one of the seeded demo accounts. The password is
-`SEED_PASSWORD`, which defaults to `ChangeMe-2026!`:
+Open http://localhost:3000, choose **Create a free account**, and sign up. Sign up with the
+`ADMIN_EMAIL` address to get administrator access.
 
-| Account | Role |
-| --- | --- |
-| `admin@example.com` | Administrator |
-| `creator@example.com`, `creator2@example.com` | Resume Creator |
-| `reviewer@example.com` | Reviewer |
-| `viewer@example.com` | Read-only |
+For local development with sample data, run `SEED_DEMO=true npm run db:seed`. It creates demo
+accounts (`admin@`, `creator@`, `creator2@`, `reviewer@` and `viewer@example.com`, password
+`ChangeMe-2026!`) and a fictional candidate. **Never use `SEED_DEMO` on a public site.**
 
-The seed includes a synthetic demo candidate, *Jordan Avery (Demo)*, at fictional "(Demo)"
-organizations. Demo outputs are labeled as samples. **Disable or re-password the demo accounts
-before anyone else can reach the environment.**
+## Publishing
+
+The app is a standard Node server and needs a PostgreSQL database. Generated files are stored in
+the database, so the server needs no persistent disk.
+
+1. **Create a PostgreSQL database.** Any managed provider works (Neon, Supabase, Render, Railway,
+   AWS RDS and so on). Copy its connection string.
+2. **Set the environment variables** on your host. `.env.example` lists them all:
+   - `DATABASE_URL`: required.
+   - `APP_URL`: required; your public address, such as `https://resumes.example.com`.
+   - `ADMIN_EMAIL`: your email. Sign up with it to become the administrator.
+   - `SMTP_URL` and `MAIL_FROM`: needed for "Forgot password" emails. Without them, users cannot reset their own password.
+   - `ANTHROPIC_API_KEY`: optional; turns on AI wording polish.
+3. **Deploy**, using either option:
+   - **Docker** (Render, Railway, Fly.io, a VPS and so on):
+     `docker build -t resume-builder . && docker run -p 3000:3000 --env-file .env resume-builder`.
+     The container runs migrations and loads reference data on every start; both are safe to repeat.
+   - **Node host without Docker:** set the build command to `npm ci && npm run build` and the start
+     command to `npm run start:prod`.
+4. **Serve it over HTTPS.** Managed hosts do this automatically. Session cookies are marked
+   `Secure` in production.
+5. Sign up with your `ADMIN_EMAIL`, then open **Administration** to check the settings.
+
+Serverless platforms such as Vercel are untested. If you use one, run
+`prisma migrate deploy && tsx prisma/seed.ts` as part of the build, because there is no long-running
+start command.
 
 ### Optional AI wording layer
 
@@ -74,7 +98,7 @@ To prepare the integration database:
 ```bash
 createdb resume_builder_test
 DATABASE_URL=postgresql://…/resume_builder_test npx prisma migrate deploy
-DATABASE_URL=postgresql://…/resume_builder_test npm run db:seed
+SEED_DEMO=true DATABASE_URL=postgresql://…/resume_builder_test npm run db:seed
 ```
 
 ### Acceptance test coverage (§16)
@@ -144,13 +168,13 @@ All endpoints require a session cookie and return `{ data }` or `{ error: { code
 | `GET /api/admin/audit-events` | Restricted audit search |
 | `GET /api/health` | Health check |
 
-## Before production
+## Before scaling up
 
-Pilot with synthetic data and a small group of authorized users, as the release gate in §16 requires. Before a wider launch:
-
-- Put the app behind HTTPS and use managed PostgreSQL with encryption at rest, automated backups and restore tests.
-- Replace the in-process login throttle and API rate limiter with a shared store such as Redis.
-- Wire password-reset links to email. In development they are written to the server log or shown to administrators.
-- Add malware scanning and OCR for scanned PDFs if your infrastructure supports them. Scanned PDFs are currently rejected with a clear message.
-- Review the legal basis, notices and retention policy for each jurisdiction you operate in. This software is not legal advice.
-- Have an administrator review the seeded templates and verify client records, with evidence, before using them.
+- The login, sign-up, password-reset and API throttles are kept in memory. They work for a single
+  server instance. If you run several instances, move them to a shared store such as Redis.
+- Scanned (image-only) PDFs are rejected with a clear message. Add OCR if your users need it.
+- Turn on automated backups for your database, and test a restore.
+- Add a privacy policy and terms that fit the countries you serve. Resumes contain personal data.
+  This software is not legal advice.
+- An administrator should review the seeded project templates. Clients in the shared library start
+  as "unverified"; that is informational only and no longer blocks finalizing.

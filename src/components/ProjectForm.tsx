@@ -4,7 +4,7 @@ import { deleteProject, saveProject } from "@/app/(app)/candidates/actions";
 
 type Tech = { id: string; canonicalName: string; category: string };
 type Template = { id: string; name: string; domainKey: string; subdomain: string };
-type Employment = { id: string; employer: string; title: string; startDate: Date; endDate: Date | null };
+type Employment = { id: string; employer: string; location?: string | null; title: string; startDate: Date; endDate: Date | null };
 type Project = {
   id: string;
   position: number;
@@ -44,6 +44,8 @@ export function ProjectForm({
   defaultDomain?: string | null;
 }) {
   const selected = new Set(project?.technologies.map((t) => t.technologyId) ?? []);
+  const currentEmployment = employments.find((e) => e.id === project?.employmentId) ?? null;
+  const fid = project?.id ?? "new";
   const allConfirmed = project ? project.technologies.length > 0 && project.technologies.every((t) => t.confirmed) : false;
   const domainKey = project?.domainKey ?? defaultDomain ?? "BANKING";
   const subdomains = DOMAINS.find((x) => x.key === domainKey)?.subdomains ?? [];
@@ -60,14 +62,15 @@ export function ProjectForm({
       </div>
       <div className="row">
         <div>
-          <label>Client / employer <span className="hint">(verified employment only)</span></label>
-          <select name="employmentId" defaultValue={project?.employmentId ?? ""}>
-            <option value="">— select verified employment —</option>
-            {employments.map((e) => (
-              <option key={e.id} value={e.id}>{e.employer} · {e.title} ({d(e.startDate)} → {e.endDate ? d(e.endDate) : "current"})</option>
-            ))}
-          </select>
+          <label htmlFor={`client-${fid}`}>Client / company name * <span className="hint">(type any name)</span></label>
+          <input id={`client-${fid}`} name="clientName" type="text" required maxLength={150} list="client-suggestions" defaultValue={currentEmployment?.employer ?? ""} placeholder="e.g. Acme Bank" />
         </div>
+        <div>
+          <label htmlFor={`loc-${fid}`}>Client location</label>
+          <input id={`loc-${fid}`} name="clientLocation" type="text" maxLength={120} defaultValue={currentEmployment?.location ?? ""} placeholder="City, State" />
+        </div>
+      </div>
+      <div className="row">
         <div><label>Start date *</label><input name="startDate" type="date" required defaultValue={d(project?.startDate ?? null)} /></div>
         <div><label>End date <span className="hint">(blank = current)</span></label><input name="endDate" type="date" defaultValue={d(project?.endDate ?? null)} /></div>
       </div>
@@ -102,7 +105,7 @@ export function ProjectForm({
       <label>Technologies used on this project</label>
       <TechPicker techs={techs} selected={selected} />
       <label className="check"><input type="checkbox" name="techAllConfirmed" defaultChecked={allConfirmed} /> The candidate confirmed they used every selected technology on this project</label>
-      <label className="check"><input type="checkbox" name="clientConfirmed" defaultChecked={project?.clientConfirmed ?? false} /> The candidate confirmed this client/employer relationship and the project dates</label>
+      <label className="check"><input type="checkbox" name="clientConfirmed" defaultChecked={project?.clientConfirmed ?? true} /> I confirm the candidate really worked with this client on these dates</label>
       <div className="actions" style={{ marginTop: 12 }}>
         <button className="btn primary" type="submit">{project ? "Save project" : "Add project"}</button>
         {project && (
@@ -112,5 +115,14 @@ export function ProjectForm({
         )}
       </div>
     </form>
+  );
+}
+
+/** Datalist of client name suggestions shared by every ProjectForm on a page. */
+export function ClientSuggestions({ names }: { names: string[] }) {
+  return (
+    <datalist id="client-suggestions">
+      {[...new Set(names)].map((n) => <option key={n} value={n} />)}
+    </datalist>
   );
 }

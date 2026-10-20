@@ -1,5 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
+import { getDesign } from "@/lib/designs";
 import { applyModeCaps } from "@/lib/layout";
 import { ResumeContent } from "@/lib/resume-schema";
 import { audit } from "@/lib/server/audit";
@@ -58,7 +60,7 @@ export async function changeStatus(form: FormData) {
     if (!["IN_REVIEW", "APPROVED", "REJECTED"].includes(to)) throw new Error("Unknown status.");
     await transitionVersion(user, versionId, to, str(form, "note") || undefined);
   });
-  redirect(withMessage(`/resumes/${resumeId}?v=${versionId}`, "ok", to === "IN_REVIEW" ? "Submitted for review." : to === "APPROVED" ? "Approved." : "Rejected and returned for editing."));
+  redirect(withMessage(`/resumes/${resumeId}?v=${versionId}`, "ok", to === "IN_REVIEW" ? "Submitted for review." : to === "APPROVED" ? "Resume finalized." : "Sent back for editing."));
 }
 
 export async function exportFile(form: FormData) {
@@ -69,11 +71,28 @@ export async function exportFile(form: FormData) {
   await attempt(`/resumes/${resumeId}?v=${versionId}`, async () => {
     const format = str(form, "format") === "PDF" ? "PDF" : "DOCX";
     const spacing = str(form, "spacing") === "compact" ? "compact" : "normal";
-    const { record, pageCount, pageTarget } = await exportVersion(user, versionId, format, spacing);
-    message = `${format} exported: ${pageCount ?? "?"} rendered page(s) (target ${pageTarget}).${pageCount && pageCount > pageTarget ? " Over target — review the compression proposal." : ""} |${record.id}`;
+    const { record, pageCount, pageTarget } = await exportVersion(user, versionId, format, spacing, str(form, "design") || undefined);
+    message = `${format === "DOCX" ? "Word" : "PDF"} file ready: ${pageCount ?? "?"} page(s) (target ${pageTarget}).${pageCount && pageCount > pageTarget ? " Over target — try Compact spacing or the Compact design." : ""} |${record.id}`;
   });
   const [text, id] = message.split(" |");
   redirect(withMessage(`/resumes/${resumeId}?v=${versionId}&download=${id}`, "ok", text));
+}
+
+/** Design is presentation only, so it is updated in place (wording stays immutable) and audited. */
+export async function setDesign(form: FormData) {
+  const user = await requireUser();
+  const resumeId = str(form, "resumeId");
+  const versionId = str(form, "versionId");
+  await attempt(`/resumes/${resumeId}?v=${versionId}`, async () => {
+    await authorizeResume(user, resumeId, "write");
+    const design = getDesign(str(form, "design"));
+    const version = await prisma.resumeVersion.findFirstOrThrow({ where: { id: versionId, resumeId } });
+    const content = ResumeContent.parse(version.content);
+    content.meta.templateKey = design.key;
+    await prisma.resumeVersion.update({ where: { id: versionId }, data: { templateKey: design.key, content: content as unknown as Prisma.InputJsonValue } });
+    await audit(user.id, "resume.design", "ResumeVersion", versionId, "SUCCESS", { design: design.key });
+  });
+  redirect(withMessage(`/resumes/${resumeId}?v=${versionId}`, "ok", "Design updated."));
 }
 
 /** Apply an approved compression step as a new version (spacing applies at export time). */

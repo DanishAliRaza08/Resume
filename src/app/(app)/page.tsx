@@ -30,7 +30,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         {(user.role === "ADMIN" || user.role === "CREATOR") && (
           <div className="actions">
             <Link className="btn primary" href="/resumes/new">Create New Resume</Link>
-            <Link className="btn" href="/update">Update Existing Resume</Link>
+            <Link className="btn" href="/update">Tailor an existing resume</Link>
           </div>
         )}
       </div>

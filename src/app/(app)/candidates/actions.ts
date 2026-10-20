@@ -44,6 +44,7 @@ export async function createCandidate(form: FormData) {
     await audit(user.id, "candidate.create", "Candidate", c.id);
     id = c.id;
   });
+  if (str(form, "next") === "wizard") redirect(`/resumes/new?candidateId=${id}&step=2`);
   redirect(`/candidates/${id}?ok=Candidate+created`);
 }
 
@@ -161,11 +162,27 @@ export async function deleteCandidate(form: FormData) {
     // Remove stored export files as well as database records (spec §14 retention & deletion).
     const exportsToRemove = await prisma.exportFile.findMany({ where: { resume: { candidateId: id } }, select: { storagePath: true } });
     const { rm } = await import("node:fs/promises");
-    for (const e of exportsToRemove) await rm(e.storagePath, { force: true });
+    for (const e of exportsToRemove) if (e.storagePath) await rm(e.storagePath, { force: true });
     await prisma.candidate.delete({ where: { id } });
     await audit(user.id, "candidate.delete", "Candidate", id, "SUCCESS", { exportsRemoved: exportsToRemove.length });
   });
   redirect(withMessage("/candidates", "ok", "Candidate and all related resumes, versions and export files were deleted. Database backups expire per the backup retention schedule."));
+}
+
+/**
+ * Find the candidate's employment record for a typed client name (case-insensitive), widening its
+ * dates to cover the project, or create one. Lets users enter any client name directly.
+ */
+async function upsertEmploymentFor(candidateId: string, e: { employer: string; location: string | null; title: string; start: Date; end: Date | null }) {
+  const existing = await prisma.employment.findFirst({ where: { candidateId, employer: { equals: e.employer, mode: "insensitive" } } });
+  if (!existing) {
+    return prisma.employment.create({
+      data: { candidateId, employer: e.employer, location: e.location, title: e.title, startDate: e.start, endDate: e.end, evidence: "Entered with project", status: "CANDIDATE_CONFIRMED" },
+    });
+  }
+  const startDate = existing.startDate < e.start ? existing.startDate : e.start;
+  const endDate = existing.endDate === null || e.end === null ? null : existing.endDate > e.end ? existing.endDate : e.end;
+  return prisma.employment.update({ where: { id: existing.id }, data: { startDate, endDate, location: e.location ?? existing.location } });
 }
 
 function returnTo(form: FormData, fallback: string): string {
@@ -180,13 +197,19 @@ export async function saveProject(form: FormData) {
   await attempt(back, async () => {
     await authorizeCandidate(user, candidateId, "write");
     const projectId = optStr(form, "projectId");
-    const employmentId = optStr(form, "employmentId");
     const start = date(form, "startDate");
     if (!start) throw new Error("Project start date is required.");
     const end = date(form, "endDate");
     if (end && end < start) throw new Error("Project end date is before its start date.");
-    const employment = employmentId ? await prisma.employment.findFirst({ where: { id: employmentId, candidateId } }) : null;
-    if (employmentId && !employment) throw new Error("Employment record not found.");
+    const clientName = str(form, "clientName").slice(0, 150);
+    if (!clientName) throw new Error("Enter the client or company name.");
+    const employment = await upsertEmploymentFor(candidateId, {
+      employer: clientName,
+      location: optStr(form, "clientLocation"),
+      title: str(form, "role") || str(form, "title") || "Consultant",
+      start,
+      end,
+    });
     const data = {
       candidateId,
       employmentId: employment?.id ?? null,
@@ -212,6 +235,8 @@ export async function saveProject(form: FormData) {
     if (techIds.length) {
       await prisma.projectTechnology.createMany({ data: techIds.map((technologyId) => ({ projectId: project.id, technologyId, confirmed: allConfirmed, evidence: "Confirmed by user in project editor" })) });
     }
+    // Remove auto-created employment records that no project uses any more (e.g. after renaming a client).
+    await prisma.employment.deleteMany({ where: { candidateId, evidence: "Entered with project", projects: { none: {} } } });
     await audit(user.id, projectId ? "project.update" : "project.create", "Project", project.id);
   });
   redirect(withMessage(back, "ok", "Project saved."));

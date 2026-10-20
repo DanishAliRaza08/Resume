@@ -88,3 +88,17 @@ describe("exports (AT-10)", () => {
     expect(compact.pageCount).toBeLessThanOrEqual(normal.pageCount);
   }, 30_000);
 });
+
+describe("resume designs", () => {
+  it("every design renders DOCX and PDF that re-open with all sections", async () => {
+    const { DESIGNS } = await import("@/lib/designs");
+    expect(DESIGNS.length).toBeGreaterThanOrEqual(6);
+    for (const d of DESIGNS) {
+      const { content } = generateResume(demoInput({ templateKey: d.key }));
+      const pdf = await renderPdf(content);
+      expect((await verifyExport("PDF", pdf.buffer, content)).ok, d.key).toBe(true);
+      const docx = await renderDocx(content);
+      expect((await verifyExport("DOCX", docx, content)).ok, d.key).toBe(true);
+    }
+  }, 60_000);
+});

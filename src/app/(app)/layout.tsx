@@ -13,11 +13,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ...(user.role === "ADMIN" || user.role === "CREATOR"
           ? [
               { href: "/resumes/new", label: "Create New Resume" },
-              { href: "/update", label: "Update Existing Resume" },
+              { href: "/update", label: "Tailor Existing Resume" },
             ]
           : []),
-        { href: "/resumes", label: "Resume Library" },
-        { href: "/candidates", label: "Candidates" },
+        { href: "/resumes", label: "My Resumes" },
+        { href: "/candidates", label: "People" },
         { href: "/jd", label: "JD Analyzer" },
       ],
     },
@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     },
     {
       title: "Insights",
-      items: [{ href: "/reports", label: "Reports" }, ...(isAdmin ? [{ href: "/admin", label: "Administration" }] : [])],
+      items: isAdmin ? [{ href: "/reports", label: "Reports" }, { href: "/admin", label: "Administration" }] : [],
     },
   ];
   return (
@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="brand">
           Resume Builder<small>Multi-domain · ATS optimization</small>
         </div>
-        <Nav groups={groups} />
+        <Nav groups={groups.filter((g) => g.items.length > 0)} />
         <div className="userbox">
           <div>{user.name}</div>
           <div className="small">{user.role.toLowerCase()}</div>

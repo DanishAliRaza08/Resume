@@ -12,7 +12,8 @@ import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
 import { AccessDenied, authorizeResume, can, candidateWritable } from "@/lib/server/permissions";
 import { validateForCandidate } from "@/lib/server/resume-service";
-import { applyCompression, changeStatus, exportFile, restoreVersion, saveEdits } from "./actions";
+import { DESIGNS, getDesign } from "@/lib/designs";
+import { applyCompression, changeStatus, exportFile, restoreVersion, saveEdits, setDesign } from "./actions";
 
 const LAYERS = ["SCHEMA", "FACTUAL", "CONSISTENCY", "QUALITY", "LAYOUT"] as const;
 
@@ -43,7 +44,8 @@ export default async function ResumePage({ params, searchParams }: { params: Pro
   // Re-run checks on view so the report reflects the latest candidate evidence.
   const report: ValidationReport = await validateForCandidate(resume.candidateId, content);
   const writable = candidateWritable(user, candidate);
-  const reviewer = can(user, "resume:review") && (current.createdById !== user.id || user.role === "ADMIN");
+  const reviewer = can(user, "resume:review");
+  const design = getDesign(content.meta.templateKey);
   const approved = current.status === "APPROVED" || current.status === "EXPORTED";
   const issuesByLayer = LAYERS.map((l) => [l, report.issues.filter((i) => i.layer === l)] as const);
   const parent = current.parentVersionId ? versions.find((v) => v.id === current.parentVersionId) : null;
@@ -66,7 +68,7 @@ export default async function ResumePage({ params, searchParams }: { params: Pro
       <Flash searchParams={sp} />
       {sp.download && <div className="notice info">Your file is ready: <a href={`/api/exports/${sp.download}`}>download</a>.</div>}
       {current.status === "REJECTED" && current.reviewNote && <div className="notice bad">Rejected: {current.reviewNote}. Edit and save to create a new draft.</div>}
-      {approved && writable && <div className="notice info">This version is {current.status.toLowerCase()} and immutable. Saving edits creates a new draft version; this one stays recoverable.</div>}
+      {approved && writable && <div className="notice info">This version is final. Saving edits creates a new draft version; this one stays recoverable.</div>}
 
       <div className="split">
         <div>
@@ -80,33 +82,72 @@ export default async function ResumePage({ params, searchParams }: { params: Pro
             readOnly={!writable}
           />
           <h2>Preview</h2>
-          <ResumePreview content={content} draftLabel={approved ? null : `DRAFT v${current.version} — not approved for external use`} />
+          <ResumePreview content={content} />
         </div>
 
         <aside>
+          {can(user, "resume:export") && (
+            <section className="card">
+              <h2>Download</h2>
+              <form action={exportFile} className="stack">
+                <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} />
+                <label htmlFor="exportDesign">Design</label>
+                <select id="exportDesign" name="design" defaultValue={design.key}>
+                  {DESIGNS.map((d) => <option key={d.key} value={d.key}>{d.name}</option>)}
+                </select>
+                <label className="check"><input type="radio" name="spacing" value="normal" defaultChecked /> Normal spacing</label>
+                <label className="check"><input type="radio" name="spacing" value="compact" /> Compact spacing (fits more per page)</label>
+                <div className="actions">
+                  <button className="btn primary" type="submit" name="format" value="PDF">Download PDF</button>
+                  <button className="btn" type="submit" name="format" value="DOCX">Download Word</button>
+                </div>
+              </form>
+              {report.counts.critical > 0 && <p className="hint">Tip: {report.counts.critical} item(s) under Checks still need attention before this resume is final.</p>}
+              {exportsList.length > 0 && (
+                <ul className="small clean stack" style={{ marginTop: 10 }}>
+                  {exportsList.map((e) => <li key={e.id}><a href={`/api/exports/${e.id}`}>{e.fileName}</a> · {e.pageCount ?? "?"} pp · {fmtDateTime(e.createdAt)}</li>)}
+                </ul>
+              )}
+            </section>
+          )}
+
           <section className="card">
-            <h2>Review</h2>
-            <p className="small">Draft → automated checks → human review → approved → exported.</p>
+            <h2>Status</h2>
+            <p className="small"><StatusBadge value={current.status} /> {approved ? "This version is final. Editing creates a new draft." : "Draft — edit freely, then finalize."}</p>
             {current.status === "DRAFT" && writable && (
-              <form action={changeStatus}>
-                <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} /><input type="hidden" name="to" value="IN_REVIEW" />
-                <button className="btn primary" type="submit">Submit for review</button>
+              <form action={changeStatus} className="actions">
+                <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} />
+                <button className="btn primary" type="submit" name="to" value="APPROVED" disabled={report.blocking}>Finalize resume</button>
+                <button className="btn small" type="submit" name="to" value="IN_REVIEW">Ask someone to review</button>
               </form>
             )}
-            {current.status === "IN_REVIEW" && reviewer && (
+            {current.status === "DRAFT" && writable && report.blocking && <p className="hint">Finalize unlocks when the critical items under Checks are resolved (most are fixed with “Confirm all” in the editor).</p>}
+            {current.status === "IN_REVIEW" && (writable || reviewer) && (
               <form action={changeStatus} className="stack">
                 <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} />
-                <label htmlFor="note">Review note <span className="hint">(required to reject)</span></label>
+                <label htmlFor="note">Note <span className="hint">(required to send back)</span></label>
                 <textarea id="note" name="note" style={{ minHeight: 50 }} />
                 <div className="actions">
                   <button className="btn primary" type="submit" name="to" value="APPROVED" disabled={report.blocking}>Approve</button>
-                  <button className="btn danger" type="submit" name="to" value="REJECTED">Reject</button>
+                  <button className="btn danger" type="submit" name="to" value="REJECTED">Send back</button>
                 </div>
-                {report.blocking && <p className="hint">Approval is disabled while critical issues remain.</p>}
               </form>
             )}
-            {current.status === "IN_REVIEW" && !reviewer && <p className="muted small">Waiting for a reviewer (the author cannot approve their own version).</p>}
-            {current.reviewedAt && <p className="small muted">Reviewed {fmtDateTime(current.reviewedAt)}{current.reviewNote ? ` — “${current.reviewNote}”` : ""}</p>}
+            {current.reviewedAt && <p className="small muted">Updated {fmtDateTime(current.reviewedAt)}{current.reviewNote ? ` — “${current.reviewNote}”` : ""}</p>}
+          </section>
+
+          <section className="card">
+            <h2>Design</h2>
+            <p className="small muted">Current: <strong>{design.name}</strong>. Changing the design does not change any wording.</p>
+            {writable ? (
+              <form action={setDesign} className="stack">
+                <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} />
+                <select name="design" defaultValue={design.key} aria-label="Design">
+                  {DESIGNS.map((d) => <option key={d.key} value={d.key}>{d.name} — {d.description}</option>)}
+                </select>
+                <button className="btn small" type="submit">Apply design</button>
+              </form>
+            ) : null}
           </section>
 
           <section className="card">
@@ -150,27 +191,6 @@ export default async function ResumePage({ params, searchParams }: { params: Pro
               </>
             )}
           </section>
-
-          {can(user, "resume:export") && (
-            <section className="card">
-              <h2>Export</h2>
-              {!approved && <p className="small">Unapproved versions export with a DRAFT label for internal review only.</p>}
-              <form action={exportFile} className="stack">
-                <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} />
-                <label className="check"><input type="radio" name="spacing" value="normal" defaultChecked /> Normal spacing</label>
-                <label className="check"><input type="radio" name="spacing" value="compact" /> Compact spacing</label>
-                <div className="actions">
-                  <button className="btn" type="submit" name="format" value="DOCX">Export DOCX</button>
-                  <button className="btn" type="submit" name="format" value="PDF">Export PDF</button>
-                </div>
-              </form>
-              {exportsList.length > 0 && (
-                <ul className="small clean stack" style={{ marginTop: 10 }}>
-                  {exportsList.map((e) => <li key={e.id}><a href={`/api/exports/${e.id}`}>{e.fileName}</a> · {e.pageCount ?? "?"} pp · {fmtDateTime(e.createdAt)}</li>)}
-                </ul>
-              )}
-            </section>
-          )}
 
           <section className="card">
             <h2>Version history</h2>

@@ -1,18 +1,26 @@
 "use server";
 import { redirect } from "next/navigation";
-import { audit, logEvent } from "@/lib/server/audit";
+import { audit } from "@/lib/server/audit";
 import { prisma } from "@/lib/server/db";
 import { str, withMessage } from "@/lib/server/forms";
 import { hashPassword, passwordProblems, sha256 } from "@/lib/server/passwords";
 import { issueResetToken } from "@/lib/server/reset";
+import { appUrl, sendMail } from "@/lib/server/mail";
+
+const lastSent = new Map<string, number>();
 
 export async function requestReset(form: FormData) {
-  const email = str(form, "email").toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email } });
+  const email = str(form, "email").toLowerCase().slice(0, 200);
+  const recently = (lastSent.get(email) ?? 0) > Date.now() - 2 * 60_000; // at most one email per 2 minutes
+  const user = recently ? null : await prisma.user.findUnique({ where: { email } });
   if (user && user.status === "ACTIVE") {
+    lastSent.set(email, Date.now());
     const token = await issueResetToken(user.id);
-    // Email delivery is an integration point; in development the link is written to the server log.
-    logEvent("info", "password reset link issued", { userId: user.id, link: `/reset-password?token=${token}` });
+    await sendMail(
+      user.email,
+      "Reset your Resume Builder password",
+      `Hi ${user.name},\n\nUse this link within one hour to set a new password:\n${appUrl()}/reset-password?token=${token}\n\nIf you did not ask for this, you can ignore this email.`,
+    );
     await audit(user.id, "auth.reset.request", "User", user.id);
   }
   // Same response whether or not the account exists (no account enumeration).

@@ -1,18 +1,20 @@
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { Flash } from "@/components/Flash";
-import { ProjectForm } from "@/components/ProjectForm";
+import { ClientSuggestions, ProjectForm } from "@/components/ProjectForm";
 import { StatusBadge } from "@/components/Badges";
 import { DOMAINS, ROLES, SENIORITY_LEVELS } from "@/data/domains";
-import { RESUME_TEMPLATES } from "@/lib/export";
+import { getDesign } from "@/lib/designs";
 import { fmtDate } from "@/lib/format";
 import { aiConfigured } from "@/lib/server/ai";
 import { requireUser } from "@/lib/server/auth";
 import { getSettings } from "@/lib/server/catalog";
 import { prisma } from "@/lib/server/db";
-import { techOptions, templateOptions } from "@/lib/server/lookups";
+import { clientNameOptions, techOptions, templateOptions } from "@/lib/server/lookups";
 import { authorizeCandidate, candidateScope } from "@/lib/server/permissions";
 import { analyzeTimeline, formatDuration, toDate, totalExperienceMonths } from "@/lib/timeline";
+import { createCandidate } from "../../candidates/actions";
+import { DesignPicker } from "@/components/DesignPicker";
 import { generate } from "./actions";
 
 const STEPS = ["Candidate", "Target role", "Projects", "Format", "Review & generate"];
@@ -44,7 +46,7 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
 
   return (
     <>
-      <div className="pagehead"><div><h1>Create new resume</h1><p>Guided wizard — drafts use only verified candidate facts and confirmed technologies.</p></div></div>
+      <div className="pagehead"><div><h1>Create new resume</h1><p>Five quick steps: who it is for, target role, projects, design, generate.</p></div></div>
       <ol className="steps" aria-label="Wizard progress">
         {STEPS.map((s, i) => (
           <li key={s} aria-current={effectiveStep === i + 1 ? "step" : undefined} className={effectiveStep > i + 1 ? "done" : undefined}>{i + 1}. {s}</li>
@@ -90,14 +92,11 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
         <form className="card" action="/resumes/new" method="get">
           <Hidden omit={["mode", "pageTarget", "templateKey", "includeHighlights", "useAi"]} />
           <input type="hidden" name="step" value="5" />
-          <h2>Format</h2>
+          <h2>Choose a design</h2>
+          <p className="muted small">All designs are single-column and ATS-friendly. You can switch design any time later.</p>
+          <DesignPicker value={state.templateKey} />
+          <h2>Length and detail</h2>
           <div className="row">
-            <div>
-              <label htmlFor="templateKey">Resume template</label>
-              <select id="templateKey" name="templateKey" defaultValue={state.templateKey}>
-                {Object.entries(RESUME_TEMPLATES).map(([k, t]) => <option key={k} value={k}>{t.name} — {t.description}</option>)}
-              </select>
-            </div>
             <div>
               <label htmlFor="pageTarget">Requested page count</label>
               <select id="pageTarget" name="pageTarget" defaultValue={state.pageTarget}>
@@ -158,7 +157,7 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
         <p>
           <strong>{c.fullName}</strong> · {DOMAINS.find((d) => d.key === state.domainKey)?.name ?? "—"} · {ROLES.find((r) => r.key === state.roleKey)?.name ?? "—"} · {state.seniority} · verified experience {formatDuration(totalExperienceMonths(intervals))}
         </p>
-        <p className="small muted">Template {state.templateKey} · target {state.pageTarget} page(s) · {state.mode.toLowerCase().replace("_", "-")} detail{state.useAi === "on" ? " · AI polish" : ""}</p>
+        <p className="small muted">Design {getDesign(state.templateKey).name} · target {state.pageTarget} page(s) · {state.mode.toLowerCase().replace("_", "-")} detail{state.useAi === "on" ? " · AI polish" : ""}</p>
         <h3>Projects to include</h3>
         <ul className="clean stack">
           {c.projects.map((p, i) => (
@@ -192,6 +191,9 @@ async function StepCandidate({ userScope }: { userScope: object }) {
   const candidates = await prisma.candidate.findMany({ where: userScope, orderBy: { updatedAt: "desc" }, take: 100, include: { _count: { select: { employments: true, projects: true } } } });
   return (
     <div className="grid cols-2">
+      {candidates.length === 0 ? (
+        <div className="card"><h2>Welcome</h2><p className="muted">Start by entering the person this resume is for. Next you will choose the industry and role, add projects, and pick a design.</p></div>
+      ) : (
       <form className="card" action="/resumes/new" method="get">
         <input type="hidden" name="step" value="2" />
         <h2>Select an existing candidate</h2>
@@ -202,20 +204,31 @@ async function StepCandidate({ userScope }: { userScope: object }) {
         </select>
         <div className="actions" style={{ marginTop: 16 }}><button className="btn primary" type="submit">Next: target role</button></div>
       </form>
-      <div className="card">
-        <h2>Or create a new candidate</h2>
-        <p className="muted">Add the profile and verified employment first, then return here.</p>
-        <Link className="btn" href="/candidates/new">New candidate</Link>
-      </div>
+      )}
+      <form className="card" action={createCandidate}>
+        <input type="hidden" name="next" value="wizard" />
+        <h2>Or start a new person</h2>
+        <p className="muted small">Who is this resume for? You can add more details later.</p>
+        <label htmlFor="q-fullName">Full name *</label><input id="q-fullName" name="fullName" type="text" required maxLength={200} />
+        <div className="row">
+          <div><label htmlFor="q-email">Email</label><input id="q-email" name="email" type="email" /></div>
+          <div><label htmlFor="q-phone">Phone</label><input id="q-phone" name="phone" type="text" /></div>
+        </div>
+        <label htmlFor="q-location">Location</label><input id="q-location" name="location" type="text" placeholder="City, State" />
+        <label htmlFor="q-linkedin">LinkedIn</label><input id="q-linkedin" name="linkedin" type="text" />
+        <label className="check"><input type="checkbox" name="consent" defaultChecked /> This person agreed to have their details stored to build the resume</label>
+        <div className="actions" style={{ marginTop: 12 }}><button className="btn primary" type="submit">Continue</button></div>
+      </form>
     </div>
   );
 }
 
 async function StepProjects({ candidateId, state, qs }: { candidateId: string; state: Record<string, string>; qs: (p: Record<string, string | number>) => string }) {
-  const [c, techs, templates] = await Promise.all([
+  const [c, techs, templates, clientNames] = await Promise.all([
     prisma.candidate.findUniqueOrThrow({ where: { id: candidateId }, include: { employments: { orderBy: { startDate: "desc" } }, projects: { include: { technologies: true }, orderBy: { position: "asc" } } } }),
     techOptions(),
     templateOptions(),
+    clientNameOptions(candidateId),
   ]);
   const back = qs({ step: 3 });
   const { proposeProjects } = await import("../../candidates/actions");
@@ -223,8 +236,8 @@ async function StepProjects({ candidateId, state, qs }: { candidateId: string; s
     <>
       <div className="card">
         <h2>Five-project configuration</h2>
-        <p className="muted">Each project must sit inside a verified employment record. Templates supply phrasing only; every template bullet must be confirmed before approval. Changes save per project card.</p>
-        {c.employments.length === 0 && <div className="notice warn">No verified employment yet. <Link href={`/candidates/${candidateId}`}>Add employment on the candidate profile</Link> first.</div>}
+        <ClientSuggestions names={clientNames} />
+        <p className="muted">Add up to five projects. Type any client or company name, pick dates, a template for wording ideas, and the tools used. Each card saves on its own.</p>
         {c.projects.length === 0 && c.employments.length > 0 && (
           <form action={proposeProjects} className="row">
             <input type="hidden" name="candidateId" value={candidateId} />

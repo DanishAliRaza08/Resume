@@ -518,7 +518,8 @@ model ExportFile {
   resumeVersionId String
   format          String   // DOCX | PDF
   fileName        String
-  storagePath     String
+  storagePath     String? // legacy on-disk exports
+  data            Bytes?  // file contents (stored in the database so any host can serve them)
   bytes           Int
   pageCount       Int?
   createdById     String

@@ -123,6 +123,7 @@ export function ResumeEditor({
     );
   };
 
+  const unconfirmed = [...content.summary, ...content.projects.flatMap((p) => p.bullets)].filter((b) => b.requiresConfirmation && !b.confirmed).length;
   const empties = [...content.summary, ...content.projects.flatMap((p) => p.bullets)].filter((b) => !b.text.trim()).length;
 
   return (
@@ -131,6 +132,14 @@ export function ResumeEditor({
       <input type="hidden" name="parentVersionId" value={versionId} />
       <input type="hidden" name="content" value={JSON.stringify({ ...content, summary: content.summary.filter((b) => b.text.trim()), projects: content.projects.map((p) => ({ ...p, bullets: p.bullets.filter((b) => b.text.trim()) })) })} />
 
+      {!readOnly && unconfirmed > 0 && (
+        <div className="notice warn" style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <span>{unconfirmed} suggested bullet(s) come from templates. Read them, delete any that are not true, then confirm.</span>
+          <button type="button" className="btn small" onClick={() => update((c) => { for (const b of [...c.summary, ...c.projects.flatMap((p) => p.bullets)]) if (b.requiresConfirmation) b.confirmed = true; })}>
+            Confirm all remaining
+          </button>
+        </div>
+      )}
       <section className="card">
         <h2>Header</h2>
         <div className="row">

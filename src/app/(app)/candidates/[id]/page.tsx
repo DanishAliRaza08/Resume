@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Denied } from "@/components/Denied";
 import { CandidateFields } from "@/components/CandidateFields";
 import { Flash } from "@/components/Flash";
-import { ProjectForm } from "@/components/ProjectForm";
+import { ClientSuggestions, ProjectForm } from "@/components/ProjectForm";
 import { StatusBadge } from "@/components/Badges";
 import { TechPicker } from "@/components/TechPicker";
 import { DOMAINS } from "@/data/domains";
@@ -10,7 +10,7 @@ import { fmtDate } from "@/lib/format";
 import { analyzeTimeline, formatDuration, toDate, totalExperienceMonths } from "@/lib/timeline";
 import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
-import { techOptions, templateOptions } from "@/lib/server/lookups";
+import { clientNameOptions, techOptions, templateOptions } from "@/lib/server/lookups";
 import { AccessDenied, authorizeCandidate, candidateWritable } from "@/lib/server/permissions";
 import { addEducation, addEmployment, deleteCandidate, deleteEmployment, proposeProjects, removeQualification, setSkills, updateCandidate } from "../actions";
 
@@ -24,7 +24,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
     if (e instanceof AccessDenied) return <Denied />;
     throw e;
   }
-  const [c, techs, templates] = await Promise.all([
+  const [c, techs, templates, clientNames] = await Promise.all([
     prisma.candidate.findUniqueOrThrow({
       where: { id },
       include: {
@@ -39,6 +39,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
     }),
     techOptions(),
     templateOptions(),
+    clientNameOptions(id),
   ]);
   const intervals = c.employments.map((e) => ({ start: toDate(e.startDate), end: e.endDate ? toDate(e.endDate) : null, label: e.employer, concurrent: e.engagement !== "FULL_TIME" }));
   const months = totalExperienceMonths(intervals);
@@ -205,6 +206,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
 
       <section id="projects">
         <h2>Project experience</h2>
+        <ClientSuggestions names={clientNames} />
         {c.projects.length === 0 && canWrite && (
           <form action={proposeProjects} className="card">
             <input type="hidden" name="candidateId" value={id} />

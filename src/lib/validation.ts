@@ -85,7 +85,7 @@ export function validateResume(raw: unknown, ctx: ValidationContext): Validation
       issues.push({ code: "CLIENT_UNCONFIRMED", layer: "FACTUAL", severity: "critical", message: `${label}: candidate has not confirmed the relationship with ${p.client}.`, ref: p.id });
     }
     if (p.clientVerification === "UNVERIFIED" && !isDemo) {
-      issues.push({ code: "CLIENT_UNVERIFIED", layer: "FACTUAL", severity: "warning", message: `${label}: ${p.client} is unverified in the client library. Verify it (with evidence) in the Client library before approval.`, ref: p.id });
+      issues.push({ code: "CLIENT_UNVERIFIED", layer: "FACTUAL", severity: p.clientConfirmed ? "info" : "warning", message: `${label}: ${p.client} is not verified in the shared client library${p.clientConfirmed ? " (the candidate confirmed the relationship)" : ""}.`, ref: p.id });
     }
     for (const t of p.technologies) {
       if (!ctx.confirmedTechs.has(t)) {

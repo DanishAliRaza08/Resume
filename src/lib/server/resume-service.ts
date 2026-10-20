@@ -291,7 +291,7 @@ export async function runGenerationJob(jobId: string, opts: { simulateAiTimeout?
 // ------------------------------------------------------------------------------------------------
 
 const TRANSITIONS: Record<ResumeStatus, ResumeStatus[]> = {
-  DRAFT: ["IN_REVIEW"],
+  DRAFT: ["IN_REVIEW", "APPROVED"],
   IN_REVIEW: ["APPROVED", "REJECTED"],
   REJECTED: [],
   APPROVED: ["EXPORTED"],
@@ -300,18 +300,23 @@ const TRANSITIONS: Record<ResumeStatus, ResumeStatus[]> = {
 
 export async function transitionVersion(user: SessionUser, versionId: string, to: ResumeStatus, note?: string) {
   const version = await prisma.resumeVersion.findUniqueOrThrow({ where: { id: versionId } });
-  await authorizeResume(user, version.resumeId, to === "IN_REVIEW" ? "write" : "read");
+  const resumeRecord = await authorizeResume(user, version.resumeId, "read");
   if (!TRANSITIONS[version.status].includes(to)) throw new Error(`A ${version.status.toLowerCase()} version cannot move to ${to.toLowerCase()}.`);
-  if (to === "APPROVED" || to === "REJECTED") {
-    await assertCan(user, "resume:review", "ResumeVersion", versionId);
-    if (version.createdById === user.id && user.role !== "ADMIN") throw new AccessDenied("A different person must review this version.");
+  if (to !== "EXPORTED") {
+    // The resume's owner may finalize their own work; reviewers/admins may also act on resumes they can read.
+    const owner = await prisma.candidate.findUniqueOrThrow({ where: { id: resumeRecord.candidateId }, select: { ownerId: true } });
+    const allowed = owner.ownerId === user.id || user.role === "ADMIN" || (user.role === "REVIEWER" && to !== "IN_REVIEW");
+    if (!allowed) {
+      await audit(user.id, `denied:resume.version.${to.toLowerCase()}`, "ResumeVersion", versionId, "DENIED");
+      throw new AccessDenied();
+    }
   }
   if (to === "REJECTED" && !note?.trim()) throw new Error("A rejection reason is required.");
   if (to === "IN_REVIEW" || to === "APPROVED") {
     const resume = await prisma.resume.findUniqueOrThrow({ where: { id: version.resumeId } });
     const report = await validateForCandidate(resume.candidateId, version.content);
     await prisma.resumeVersion.update({ where: { id: versionId }, data: { validation: report as unknown as Prisma.InputJsonValue } });
-    if (to === "APPROVED" && report.blocking) throw new Error(`Cannot approve: ${report.counts.critical} critical issue(s) remain. Resolve them in a new draft version.`);
+    if (to === "APPROVED" && report.blocking) throw new Error(`Cannot finalize: ${report.counts.critical} critical issue(s) remain (see Checks). Fix them, save, then finalize.`);
   }
   const updated = await prisma.resumeVersion.update({
     where: { id: versionId },

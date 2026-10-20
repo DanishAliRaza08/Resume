@@ -30,8 +30,9 @@ export async function generate(form: FormData) {
     const key = str(form, "idempotencyKey") || randomUUID();
     const job = await startGenerationJob(user, req, key);
     jobId = job.id;
-    // Run in the background; the job page polls the persisted status.
-    if (job.status === "QUEUED") void runGenerationJob(job.id);
+    // Generation takes well under a second without AI, so it runs inline; the job record keeps
+    // retries idempotent and the job page shows the outcome (including failures).
+    if (job.status === "QUEUED") await runGenerationJob(job.id);
   });
   redirect(`/jobs/${jobId}`);
 }
