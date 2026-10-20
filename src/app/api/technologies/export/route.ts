@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import { NextResponse } from "next/server";
 import { toCsv } from "@/lib/csv";
 import { getSessionUser } from "@/lib/server/auth";
@@ -9,7 +10,7 @@ export async function GET() {
   const techs = await prisma.technology.findMany({ orderBy: [{ category: "asc" }, { canonicalName: "asc" }] });
   const csv = toCsv([
     ["canonical_name", "category", "aliases", "roles", "domains", "available_from", "lifecycle"],
-    ...techs.map((t) => [t.canonicalName, t.category, t.aliases.join("; "), t.roles.join("; "), t.domains.join("; "), t.availableFrom, t.lifecycle]),
+    ...techs.map((t) => [t.canonicalName, t.category, strs(t.aliases).join("; "), strs(t.roles).join("; "), strs(t.domains).join("; "), t.availableFrom, t.lifecycle]),
   ]);
   return new NextResponse(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="technologies.csv"', "Cache-Control": "no-store" } });
 }

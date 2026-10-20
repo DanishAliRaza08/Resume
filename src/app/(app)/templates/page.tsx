@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import Link from "next/link";
 import { DOMAINS } from "@/data/domains";
 import { fmtDate } from "@/lib/format";
@@ -29,7 +30,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
                 <td><Link href={`/templates/${t.id}`}>{t.name}</Link>{t.status !== "ACTIVE" && <span className="badge neutral"> retired</span>}</td>
                 <td className="small">{t.domain.name} · {t.subdomain}</td>
                 <td>v{t.version}</td>
-                <td>{t.domainBullets.length} / {t.projectBullets.length} / {t.qaBullets.length}</td>
+                <td>{strs(t.domainBullets).length} / {strs(t.projectBullets).length} / {strs(t.qaBullets).length}</td>
                 <td>{t.usageCount}</td>
                 <td className="small muted">{fmtDate(t.lastReviewedAt)} {t.reviewer ? `· ${t.reviewer}` : ""}</td>
               </tr>

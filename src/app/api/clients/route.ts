@@ -11,7 +11,7 @@ export const GET = withApi(async (req) => {
   const status = url.searchParams.get("status");
   const rows = await prisma.client.findMany({
     where: {
-      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+      ...(q ? { name: { contains: q } } : {}),
       ...(domain ? { domain: { key: domain } } : {}),
       ...(status ? { verificationStatus: status as "VERIFIED" } : {}),
     },

@@ -14,6 +14,7 @@ employment, tools, credentials or outcomes.
 | Area | Highlights |
 | --- | --- |
 | **Accounts** | Anyone can sign up and start building resumes straight away. Each account only sees its own people, resumes and job descriptions. |
+| **Clients** | 646 built-in organizations across the five industries. Users pick one as they type (each shows its industry) or enter any other name. Nothing needs to be uploaded. |
 | **Create New Resume** (§5.1) | 5-step wizard: who it is for → target role → projects → design → review & generate. Client and company names are typed freely (with suggestions). It can also propose a default five-project timeline (P1 ≈ 2 yrs 3 mos, P2 2 yrs, P5 7 mos, P3/P4 share the rest). |
 | **Resume designs** | Seven designs: Classic, Modern, Executive, Minimal, Bold, Elegant and Compact. Each has a live thumbnail gallery, can be switched any time, and works for both PDF and Word downloads. All are single-column and ATS-readable. |
 | **Tailor Existing Resume** (§5.2) | Upload a DOCX, PDF or TXT resume plus a JD. The app extracts the text, rebuilds section structure and stores the original as v1. It then matches the JD against the evidence and proposes traceable edits that you accept, reject or edit. |
@@ -22,7 +23,7 @@ employment, tools, credentials or outcomes.
 | **Page count** (§6.5) | The page count is estimated before export, then measured on the rendered PDF. LibreOffice measures DOCX files when it is installed. Compression proposals need approval and come in a fixed order: spacing, then mode, then removing low-value template bullets. Candidate facts are never removed. |
 | **JD tailoring** (§9) | Requirements are classified as must-have, preferred, domain, responsibility, qualification or methodology, and normalized through the catalog's aliases. Each requirement is marked supported, partial, missing or needs-confirmation. The coverage score is weighted and transparent. Every edit records its evidence and decision. |
 | **Finalize** (§5.3) | Draft → automated checks → finalized → downloaded. Owners finalize their own resumes once the checks pass; asking someone else to review is optional. Versions are immutable, so editing a final version creates a new draft. |
-| **Libraries** (§7, §8) | 25 versioned project templates (5 per domain), about 190 catalog technologies with aliases and availability years, and 118 client records. Client records support verification status, evidence, CSV import/export, deduplication, usage history and least-recently-used rotation. |
+| **Libraries** (§7, §8) | 25 versioned project templates (5 per domain), about 190 catalog technologies with aliases and availability years, and 646 client records. Client records support verification status, evidence, CSV import/export, deduplication, usage history and least-recently-used rotation. |
 | **Security** (§14) | Session auth with scrypt hashing, password reset and login throttling. Access is role- and record-level, and denied attempts are audited. Uploads are validated by type and signature, and embedded instructions are treated as data. Exports are stored privately and served through authenticated downloads. Sensitive fields are redacted from logs. |
 | **Operations** (§10.4, §17) | Generation jobs are idempotent and retryable, with tokens, cost and duration recorded. The Reports page shows aggregated operational data, and the admin page covers users, settings, retention and audit search. |
 
@@ -33,13 +34,13 @@ teams that want them; an administrator assigns them.
 
 ## Quick start (local)
 
-Requirements: Node 20+ and PostgreSQL 14+. LibreOffice is optional; it gives exact page counts for Word downloads.
+Requirements: Node 20+ and MySQL 8+ or MariaDB 10.6+. LibreOffice is optional; it gives exact page counts for Word downloads.
 
 ```bash
 npm install
 cp .env.example .env            # set DATABASE_URL and ADMIN_EMAIL
 npm run build
-npm run start:prod              # applies migrations, loads reference data, starts on :3000
+npm start                       # applies migrations, loads reference data, starts on :3000
 ```
 
 Open http://localhost:3000, choose **Create a free account**, and sign up. Sign up with the
@@ -49,34 +50,55 @@ For local development with sample data, run `SEED_DEMO=true npm run db:seed`. It
 accounts (`admin@`, `creator@`, `creator2@`, `reviewer@` and `viewer@example.com`, password
 `ChangeMe-2026!`) and a fictional candidate. **Never use `SEED_DEMO` on a public site.**
 
-## Publishing
+## Publishing on Hostinger
 
-The app is a standard Node server and needs a PostgreSQL database. Generated files are stored in
-the database, so the server needs no persistent disk.
+The app is a Node.js (Next.js) server with a MySQL database. Generated files are stored in the
+database, so the app needs no persistent disk.
 
-1. **Create a PostgreSQL database.** Any managed provider works (Neon, Supabase, Render, Railway,
-   AWS RDS and so on). Copy its connection string.
-2. **Set the environment variables** on your host. `.env.example` lists them all:
-   - `DATABASE_URL`: required.
-   - `APP_URL`: required; your public address, such as `https://resumes.example.com`.
-   - `ADMIN_EMAIL`: your email. Sign up with it to become the administrator.
-   - `SMTP_URL` and `MAIL_FROM`: needed for "Forgot password" emails. Without them, users cannot reset their own password.
-   - `ANTHROPIC_API_KEY`: optional; turns on AI wording polish.
-3. **Deploy**, using either option:
-   - **Docker** (Render, Railway, Fly.io, a VPS and so on):
-     `docker build -t resume-builder . && docker run -p 3000:3000 --env-file .env resume-builder`.
-     The container runs migrations and loads reference data on every start; both are safe to repeat.
-   - **Node host without Docker:** set the build command to `npm ci && npm run build` and the start
-     command to `npm run start:prod`.
-4. **Serve it over HTTPS.** Managed hosts do this automatically. Session cookies are marked
-   `Secure` in production.
-5. Sign up with your `ADMIN_EMAIL`, then open **Administration** to check the settings.
+> **Plan requirement:** you need a Hostinger plan that can run **Node.js apps**: Business or Cloud
+> web hosting with Node.js web apps, or a VPS. Plans that only run PHP/WordPress can host the
+> database, but not this app.
 
-Serverless platforms such as Vercel are untested. If you use one, run
-`prisma migrate deploy && tsx prisma/seed.ts` as part of the build, because there is no long-running
-start command.
+### 1. Create the MySQL database
+In **hPanel → Databases → MySQL Databases**, create a database and a user. Note the database name,
+user, password and host. The host is usually `localhost` when the app runs on the same hosting
+account. For a VPS or remote connection, use the host shown in hPanel and enable **Remote MySQL**.
 
-### Optional AI wording layer
+Your connection string is:
+`mysql://USER:PASSWORD@HOST:3306/DATABASE_NAME`
+(URL-encode special characters in the password; `@` becomes `%40`, for example).
+
+### 2a. Hostinger Node.js web app (Business / Cloud hosting)
+1. In hPanel, add a **Node.js web app**. Connect this GitHub repository or upload the project ZIP
+   (without `node_modules` and `.next`).
+2. Choose Node.js **20 or newer**. If hPanel asks for commands, use these:
+   - Install: `npm install`
+   - Build: `npm run build`
+   - Start: `npm start`. This creates or updates the tables, loads the reference data (5
+     industries, about 190 technologies, 25 templates and 646 clients), then starts the server.
+     Every step is safe to repeat.
+3. Add these **environment variables**:
+   - `DATABASE_URL`: the connection string from step 1.
+   - `APP_URL`: your site address, such as `https://resumes.yourdomain.com`.
+   - `ADMIN_EMAIL`: your email. Signing up with this address makes you the administrator.
+   - `SMTP_URL` and `MAIL_FROM`: needed for "Forgot password" emails. With a Hostinger mailbox:
+     `smtps://you%40yourdomain.com:MAILBOX_PASSWORD@smtp.hostinger.com:465`.
+   - `NODE_ENV=production`.
+4. Deploy, open your domain, and sign up with your `ADMIN_EMAIL`.
+
+### 2b. Hostinger VPS
+Install Node.js 20+ (or Docker), clone the repository and create `.env` from `.env.example`. Then
+either run `npm install && npm run build && npm start` under a process manager such as `pm2`, or
+use the included Dockerfile:
+`docker build -t resume-builder . && docker run -d -p 3000:3000 --env-file .env resume-builder`.
+Put Nginx or Hostinger's proxy in front with HTTPS.
+
+### 3. Check it
+- Visit `https://your-domain/api/health`. It should return `{"status":"ok"}`.
+- Sign up with `ADMIN_EMAIL` and confirm **Administration** appears in the menu.
+- Create a test resume and download it as PDF and Word.
+
+## Optional AI wording layer
 
 Set `ANTHROPIC_API_KEY` and enable *AI wording polish* under Administration. Claude
 (`claude-opus-5-5` by default; override with `AI_MODEL`) rewrites template-phrased bullets for
@@ -89,16 +111,16 @@ own.
 
 ```bash
 npm test                        # unit tests (no database needed)
-npm run test:integration        # service tests against a seeded PostgreSQL test database
+npm run test:integration        # service tests against a seeded MySQL test database
 npm run typecheck
 ```
 
 To prepare the integration database:
 
 ```bash
-createdb resume_builder_test
-DATABASE_URL=postgresql://…/resume_builder_test npx prisma migrate deploy
-SEED_DEMO=true DATABASE_URL=postgresql://…/resume_builder_test npm run db:seed
+mysql -e "CREATE DATABASE resume_builder_test CHARACTER SET utf8mb4"
+DATABASE_URL=mysql://…/resume_builder_test npx prisma migrate deploy
+SEED_DEMO=true DATABASE_URL=mysql://…/resume_builder_test npm run db:seed
 ```
 
 ### Acceptance test coverage (§16)
@@ -136,7 +158,7 @@ Browser ─► Next.js App Router (server components + server actions, /api JSON
           Pure domain logic (src/lib) — unit tested, no I/O
             generator · validation · timeline · jd · layout · resume-parser · files · export · rotation · text
             ▼
-          PostgreSQL (Prisma schema: prisma/schema.prisma)    private file storage (STORAGE_DIR)
+          MySQL / MariaDB (Prisma schema: prisma/schema.prisma)    private file storage (STORAGE_DIR)
 ```
 
 Key decisions:
@@ -173,7 +195,7 @@ All endpoints require a session cookie and return `{ data }` or `{ error: { code
 - The login, sign-up, password-reset and API throttles are kept in memory. They work for a single
   server instance. If you run several instances, move them to a shared store such as Redis.
 - Scanned (image-only) PDFs are rejected with a clear message. Add OCR if your users need it.
-- Turn on automated backups for your database, and test a restore.
+- Turn on automated backups for your database (hPanel → Backups), and test a restore.
 - Add a privacy policy and terms that fit the countries you serve. Resumes contain personal data.
   This software is not legal advice.
 - An administrator should review the seeded project templates. Clients in the shared library start

@@ -14,7 +14,7 @@ export default async function ResumeLibrary({ searchParams }: { searchParams: Pr
       candidate: candidateScope(user),
       ...(sp.domain ? { domainKey: sp.domain } : {}),
       ...(sp.role ? { roleKey: sp.role } : {}),
-      ...(sp.q ? { title: { contains: sp.q, mode: "insensitive" as const } } : {}),
+      ...(sp.q ? { title: { contains: sp.q } } : {}),
       ...(sp.status ? { versions: { some: { status: sp.status as "DRAFT" } } } : {}),
     },
     include: { versions: { orderBy: { version: "desc" }, take: 1 }, candidate: { select: { fullName: true } }, _count: { select: { versions: true, exports: true } } },

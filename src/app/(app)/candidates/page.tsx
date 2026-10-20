@@ -10,7 +10,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const q = sp.q ?? "";
   const candidates = await prisma.candidate.findMany({
-    where: { ...candidateScope(user), ...(q ? { fullName: { contains: q, mode: "insensitive" as const } } : {}) },
+    where: { ...candidateScope(user), ...(q ? { fullName: { contains: q } } : {}) },
     orderBy: { updatedAt: "desc" },
     include: { owner: { select: { name: true } }, _count: { select: { resumes: true, employments: true, projects: true } } },
     take: 200,

@@ -1,4 +1,5 @@
 "use server";
+import { strs } from "@/lib/json";
 import { redirect } from "next/navigation";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
@@ -25,11 +26,11 @@ export async function saveTemplate(form: FormData) {
           roleId: current.roleId,
           seniority: current.seniority,
           projectPattern: str(form, "projectPattern"),
-          requiredInputs: current.requiredInputs,
-          optionalInputs: current.optionalInputs,
+          requiredInputs: strs(current.requiredInputs),
+          optionalInputs: strs(current.optionalInputs),
           domainBullets: lines(form, "domainBullets"),
           projectBullets: lines(form, "projectBullets"),
-          supportingBullets: current.supportingBullets,
+          supportingBullets: strs(current.supportingBullets),
           qaBullets: lines(form, "qaBullets"),
           excludedClaims: lines(form, "excludedClaims"),
           terminology: str(form, "terminology").split(",").map((s) => s.trim()).filter(Boolean),

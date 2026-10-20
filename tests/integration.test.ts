@@ -1,6 +1,6 @@
-// Service-level acceptance tests against a real PostgreSQL database (seeded). Skipped unless
+// Service-level acceptance tests against a real MySQL/MariaDB database (seeded). Skipped unless
 // TEST_DATABASE_URL is set, e.g.:
-//   TEST_DATABASE_URL=postgresql://resume:resume@localhost:5432/resume_builder_test npm test
+//   TEST_DATABASE_URL=mysql://resume:resume@localhost:3306/resume_builder_test npm test
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 

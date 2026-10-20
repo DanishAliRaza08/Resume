@@ -13,7 +13,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const user = await requireUser();
   const sp = await searchParams;
   const where = {
-    ...(sp.q ? { name: { contains: sp.q, mode: "insensitive" as const } } : {}),
+    ...(sp.q ? { name: { contains: sp.q } } : {}),
     ...(sp.domain ? { domain: { key: sp.domain } } : {}),
     ...(sp.status ? { verificationStatus: sp.status as "VERIFIED" } : {}),
   };

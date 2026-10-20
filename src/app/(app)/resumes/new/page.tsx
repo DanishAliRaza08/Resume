@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { Flash } from "@/components/Flash";
@@ -139,7 +140,7 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
     for (const p of c.projects.slice(0, 5)) {
       if (!p.employmentId) issues.push({ severity: "critical", message: `Project ${p.position} is not linked to a verified employer.` });
       else if (!p.clientConfirmed) issues.push({ severity: "critical", message: `Project ${p.position}: client relationship not confirmed by the candidate.` });
-      if (!p.templateId && p.responsibilities.length === 0) issues.push({ severity: "warning", message: `Project ${p.position} has no template and no candidate responsibilities — it will be very thin.` });
+      if (!p.templateId && strs(p.responsibilities).length === 0) issues.push({ severity: "warning", message: `Project ${p.position} has no template and no candidate responsibilities — it will be very thin.` });
       const unconfirmed = p.technologies.filter((t) => !t.confirmed);
       if (unconfirmed.length) issues.push({ severity: "warning", message: `Project ${p.position}: ${unconfirmed.length} technologies not confirmed; they will be excluded.` });
       if (p.templateId && p.template && p.domainKey !== state.domainKey) issues.push({ severity: "info", message: `Project ${p.position} is in ${p.domainKey}, different from the target domain.` });

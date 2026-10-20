@@ -7,6 +7,7 @@
 //                   For local development only — never on a public site.
 import { PrismaClient } from "@prisma/client";
 import { CLIENTS } from "../src/data/clients";
+import { EXTENDED_CLIENTS } from "../src/data/clients-extended";
 import { DEMO_CANDIDATE, DEMO_CLIENTS } from "../src/data/demo";
 import { DOMAINS, ROLES } from "../src/data/domains";
 import { TECHNOLOGIES } from "../src/data/technologies";
@@ -65,7 +66,7 @@ async function main() {
     };
     await prisma.projectTemplate.upsert({ where: { name_version: { name: t.name, version: 1 } }, create: { name: t.name, version: 1, ...data }, update: {} });
   }
-  for (const c of CLIENTS) {
+  for (const c of [...CLIENTS, ...EXTENDED_CLIENTS]) {
     const normalizedName = normalizeClientName(c.name);
     await prisma.client.upsert({
       where: { normalizedName },

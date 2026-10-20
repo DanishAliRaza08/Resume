@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import { Flash } from "@/components/Flash";
 import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
@@ -20,12 +21,12 @@ export default async function TemplatePage({ params, searchParams }: { params: P
         <fieldset disabled={!editable} style={{ border: 0, padding: 0, margin: 0 }}>
           <label>Subdomain</label><input name="subdomain" type="text" defaultValue={t.subdomain} />
           <label>Project pattern</label><textarea name="projectPattern" defaultValue={t.projectPattern} style={{ minHeight: 50 }} />
-          <label>Domain bullets <span className="hint">(one per line)</span></label><textarea name="domainBullets" defaultValue={t.domainBullets.join("\n")} style={{ minHeight: 100 }} />
-          <label>Project bullets</label><textarea name="projectBullets" defaultValue={t.projectBullets.join("\n")} style={{ minHeight: 200 }} />
-          <label>QA / validation bullets</label><textarea name="qaBullets" defaultValue={t.qaBullets.join("\n")} />
-          <label>Excluded claims</label><textarea name="excludedClaims" defaultValue={t.excludedClaims.join("\n")} />
-          <label>Approved terminology <span className="hint">(comma-separated)</span></label><input name="terminology" type="text" defaultValue={t.terminology.join(", ")} />
-          <label>Typical technologies <span className="hint">(suggestions only — validate per candidate)</span></label><input name="suggestedTech" type="text" defaultValue={t.suggestedTech.join(", ")} />
+          <label>Domain bullets <span className="hint">(one per line)</span></label><textarea name="domainBullets" defaultValue={strs(t.domainBullets).join("\n")} style={{ minHeight: 100 }} />
+          <label>Project bullets</label><textarea name="projectBullets" defaultValue={strs(t.projectBullets).join("\n")} style={{ minHeight: 200 }} />
+          <label>QA / validation bullets</label><textarea name="qaBullets" defaultValue={strs(t.qaBullets).join("\n")} />
+          <label>Excluded claims</label><textarea name="excludedClaims" defaultValue={strs(t.excludedClaims).join("\n")} />
+          <label>Approved terminology <span className="hint">(comma-separated)</span></label><input name="terminology" type="text" defaultValue={strs(t.terminology).join(", ")} />
+          <label>Typical technologies <span className="hint">(suggestions only — validate per candidate)</span></label><input name="suggestedTech" type="text" defaultValue={strs(t.suggestedTech).join(", ")} />
           {editable && <button className="btn primary" type="submit" style={{ marginTop: 12 }}>Save as new version</button>}
         </fieldset>
       </form>

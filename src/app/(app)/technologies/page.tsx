@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import { Flash } from "@/components/Flash";
 import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
@@ -7,11 +8,14 @@ import { importTechnologies, saveTechnology } from "./actions";
 export default async function TechnologiesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const techs = await prisma.technology.findMany({
-    where: { ...(sp.q ? { OR: [{ canonicalName: { contains: sp.q, mode: "insensitive" as const } }, { aliases: { has: sp.q.toLowerCase() } }] } : {}), ...(sp.category ? { category: sp.category } : {}) },
-    orderBy: [{ category: "asc" }, { canonicalName: "asc" }],
-    include: { _count: { select: { projectLinks: true, candidateSkills: true } } },
-  });
+  const q = (sp.q ?? "").trim().toLowerCase();
+  const techs = (
+    await prisma.technology.findMany({
+      where: sp.category ? { category: sp.category } : {},
+      orderBy: [{ category: "asc" }, { canonicalName: "asc" }],
+      include: { _count: { select: { projectLinks: true, candidateSkills: true } } },
+    })
+  ).filter((t) => !q || t.canonicalName.toLowerCase().includes(q) || strs(t.aliases).some((a) => a.toLowerCase().includes(q)));
   const categories = (await prisma.technology.findMany({ distinct: ["category"], select: { category: true }, orderBy: { category: "asc" } })).map((c) => c.category);
   return (
     <>
@@ -34,7 +38,7 @@ export default async function TechnologiesPage({ searchParams }: { searchParams:
                 <tr key={t.id}>
                   <td>{t.canonicalName}{t.lifecycle !== "ACTIVE" && <span className="badge neutral"> {t.lifecycle.toLowerCase()}</span>}</td>
                   <td className="small">{t.category}</td>
-                  <td className="small muted">{t.aliases.join(", ") || "—"}</td>
+                  <td className="small muted">{strs(t.aliases).join(", ") || "—"}</td>
                   <td className="small">{t.availableFrom ?? "—"}</td>
                   <td className="small">{t._count.projectLinks} proj · {t._count.candidateSkills} cand</td>
                 </tr>

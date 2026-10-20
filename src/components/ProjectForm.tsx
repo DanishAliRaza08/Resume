@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import { DOMAINS } from "@/data/domains";
 import { TechPicker } from "./TechPicker";
 import { deleteProject, saveProject } from "@/app/(app)/candidates/actions";
@@ -14,8 +15,8 @@ type Project = {
   subdomain: string | null;
   employmentId: string | null;
   templateId: string | null;
-  responsibilities: string[];
-  outcomes: string[];
+  responsibilities: unknown; // JSON list
+  outcomes: unknown;
   startDate: Date;
   endDate: Date | null;
   clientConfirmed: boolean;
@@ -62,7 +63,7 @@ export function ProjectForm({
       </div>
       <div className="row">
         <div>
-          <label htmlFor={`client-${fid}`}>Client / company name * <span className="hint">(type any name)</span></label>
+          <label htmlFor={`client-${fid}`}>Client / company name * <span className="hint">(start typing to choose from 600+ companies, or enter your own)</span></label>
           <input id={`client-${fid}`} name="clientName" type="text" required maxLength={150} list="client-suggestions" defaultValue={currentEmployment?.employer ?? ""} placeholder="e.g. Acme Bank" />
         </div>
         <div>
@@ -99,9 +100,9 @@ export function ProjectForm({
         </div>
       </div>
       <label>Candidate-supplied responsibilities <span className="hint">(one per line — used verbatim as evidence-backed bullets)</span></label>
-      <textarea name="responsibilities" defaultValue={project?.responsibilities.join("\n") ?? ""} />
+      <textarea name="responsibilities" defaultValue={strs(project?.responsibilities).join("\n") ?? ""} />
       <label>Candidate-supplied outcomes <span className="hint">(only real, verifiable results; one per line)</span></label>
-      <textarea name="outcomes" style={{ minHeight: 52 }} defaultValue={project?.outcomes.join("\n") ?? ""} />
+      <textarea name="outcomes" style={{ minHeight: 52 }} defaultValue={strs(project?.outcomes).join("\n") ?? ""} />
       <label>Technologies used on this project</label>
       <TechPicker techs={techs} selected={selected} />
       <label className="check"><input type="checkbox" name="techAllConfirmed" defaultChecked={allConfirmed} /> The candidate confirmed they used every selected technology on this project</label>
@@ -119,10 +120,12 @@ export function ProjectForm({
 }
 
 /** Datalist of client name suggestions shared by every ProjectForm on a page. */
-export function ClientSuggestions({ names }: { names: string[] }) {
+export function ClientSuggestions({ names }: { names: { name: string; hint: string }[] }) {
+  const seen = new Set<string>();
+  const unique = names.filter((n) => (seen.has(n.name.toLowerCase()) ? false : (seen.add(n.name.toLowerCase()), true)));
   return (
     <datalist id="client-suggestions">
-      {[...new Set(names)].map((n) => <option key={n} value={n} />)}
+      {unique.map((n) => <option key={n.name} value={n.name} label={n.hint} />)}
     </datalist>
   );
 }

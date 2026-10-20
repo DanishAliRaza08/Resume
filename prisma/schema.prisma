@@ -2,12 +2,17 @@
 // Candidate evidence, generic templates and immutable resume versions are kept separate.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" plus the Linux variants used by common hosts (Hostinger uses CloudLinux / RHEL-family servers).
+  binaryTargets = ["native", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
+// MySQL / MariaDB (e.g. Hostinger databases). Lists are stored as JSON arrays because MySQL has
+// no array columns; long text uses TEXT types.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // only used by `prisma migrate dev` during development
 }
 
 enum UserRole {
@@ -125,9 +130,9 @@ model Domain {
   id          String   @id @default(cuid())
   key         String   @unique // BANKING, RETAIL, HEALTHCARE, PHARMA, PC_INSURANCE
   name        String   @unique
-  aliases     String[]
-  subdomains  String[]
-  terminology String[]
+  aliases     Json
+  subdomains  Json
+  terminology Json
   active      Boolean  @default(true)
   templates   ProjectTemplate[]
   clients     Client[]
@@ -137,9 +142,9 @@ model JobRole {
   id                String   @id @default(cuid())
   key               String   @unique
   name              String   @unique
-  aliases           String[]
-  skillCategories   String[] // conditional Technical Skills categories (§6.4)
-  summaryFocus      String[]
+  aliases           Json
+  skillCategories   Json // conditional Technical Skills categories (§6.4)
+  summaryFocus      Json
   includeQaBullets  Boolean  @default(true)
   active            Boolean  @default(true)
   templates         ProjectTemplate[]
@@ -155,16 +160,16 @@ model ProjectTemplate {
   role              JobRole?  @relation(fields: [roleId], references: [id])
   seniority         String?
   version           Int       @default(1)
-  projectPattern    String
-  requiredInputs    String[]
-  optionalInputs    String[]
-  domainBullets     String[]
-  projectBullets    String[]
-  supportingBullets String[]
-  qaBullets         String[]
-  excludedClaims    String[]
-  terminology       String[]
-  suggestedTech     String[]
+  projectPattern    String @db.Text
+  requiredInputs    Json
+  optionalInputs    Json
+  domainBullets     Json
+  projectBullets    Json
+  supportingBullets Json
+  qaBullets         Json
+  excludedClaims    Json
+  terminology       Json
+  suggestedTech     Json
   status            String    @default("ACTIVE")
   lastReviewedAt    DateTime?
   reviewer          String?
@@ -180,11 +185,11 @@ model ProjectTemplate {
 model Technology {
   id            String   @id @default(cuid())
   canonicalName String   @unique
-  aliases       String[]
+  aliases       Json
   category      String
-  roles         String[]
-  domains       String[]
-  projectTypes  String[]
+  roles         Json
+  domains       Json
+  projectTypes  Json
   availableFrom Int?     // first year generally available, for anachronism warnings
   lifecycle     String   @default("ACTIVE")
   createdAt     DateTime @default(now())
@@ -204,7 +209,7 @@ model Client {
   subdomain          String?
   market             String?
   verificationStatus VerificationStatus @default(UNVERIFIED)
-  evidence           String?
+  evidence           String? @db.Text
   verifiedAt         DateTime?
   isDemo             Boolean            @default(false)
   active             Boolean            @default(true)
@@ -223,7 +228,7 @@ model ClientTechnology {
   client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   technologyId String
   technology   Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
-  evidence     String?
+  evidence     String? @db.Text
   verifiedAt   DateTime?
 
   @@id([clientId, technologyId])
@@ -254,7 +259,7 @@ model Candidate {
   domainKey          String?
   consentObtainedAt  DateTime?
   retentionUntil     DateTime?
-  notes              String?
+  notes              String? @db.Text
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   employments        Employment[]
@@ -279,7 +284,7 @@ model Employment {
   startDate   DateTime           @db.Date
   endDate     DateTime?          @db.Date // null = current
   engagement  String             @default("FULL_TIME") // FULL_TIME, CONTRACT, PART_TIME
-  evidence    String?
+  evidence    String? @db.Text
   status      VerificationStatus @default(CANDIDATE_CONFIRMED)
   projects    Project[]
 
@@ -335,9 +340,9 @@ model Project {
   role              String
   domainKey         String
   subdomain         String?
-  description       String?
-  responsibilities  String[]            // candidate-supplied facts
-  outcomes          String[]
+  description       String? @db.Text
+  responsibilities  Json            // candidate-supplied facts
+  outcomes          Json
   startDate         DateTime            @db.Date
   endDate           DateTime?           @db.Date
   clientConfirmed   Boolean             @default(false)
@@ -355,8 +360,8 @@ model ProjectTechnology {
   project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   technologyId String
   technology   Technology @relation(fields: [technologyId], references: [id])
-  context      String?
-  evidence     String?
+  context      String? @db.Text
+  evidence     String? @db.Text
   confirmed    Boolean    @default(true)
 
   @@id([projectId, technologyId])
@@ -366,9 +371,9 @@ model ProjectBullet {
   id            String        @id @default(cuid())
   projectId     String
   project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  text          String
+  text          String @db.Text
   type          BulletType
-  sourceEvidence String?
+  sourceEvidence String? @db.Text
   approvalState ApprovalState @default(PROPOSED)
   createdAt     DateTime      @default(now())
 }
@@ -402,8 +407,8 @@ model ResumeVersion {
   validation     Json?
   status         ResumeStatus @default(DRAFT)
   parentVersionId String?
-  changeNote     String?
-  reviewNote     String?
+  changeNote     String? @db.Text
+  reviewNote     String? @db.Text
   reviewedById   String?
   reviewedAt     DateTime?
   createdById    String
@@ -424,7 +429,7 @@ model JobDescription {
   title            String
   sourceFileName   String?
   sourceMime       String?
-  extractedText    String
+  extractedText    String @db.LongText
   targetRole       String?
   processingStatus ProcessingStatus @default(EXTRACTED)
   createdAt        DateTime         @default(now())
@@ -443,7 +448,7 @@ model JDRequirement {
   category         RequirementCategory
   weight           Float
   required         Boolean
-  sourceLine       String?
+  sourceLine       String? @db.Text
   matches          ResumeMatch[]
 
   @@index([jobDescriptionId])
@@ -457,7 +462,7 @@ model ResumeMatch {
   requirement      JDRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
   state            MatchState
   evidenceRefs     Json
-  explanation      String?
+  explanation      String? @db.Text
   reviewerDecision String?
   userConfirmed    Boolean       @default(false)
   createdAt        DateTime      @default(now())
@@ -472,10 +477,10 @@ model EditSuggestion {
   jobDescriptionId String?
   section          String
   projectRef       String?
-  originalText     String?
-  proposedText     String
-  jdKeywordRefs    String[]
-  evidenceRefs     String[]
+  originalText     String? @db.Text
+  proposedText     String @db.Text
+  jdKeywordRefs    Json
+  evidenceRefs     Json
   requiresConfirmation Boolean   @default(false)
   decision         ApprovalState @default(PROPOSED)
   decidedById      String?
@@ -503,7 +508,7 @@ model GenerationJob {
   durationMs     Int?
   attempts       Int       @default(0)
   warnings       Json?
-  errorDetails   String?
+  errorDetails   String? @db.Text
   createdById    String
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -518,8 +523,8 @@ model ExportFile {
   resumeVersionId String
   format          String   // DOCX | PDF
   fileName        String
-  storagePath     String? // legacy on-disk exports
-  data            Bytes?  // file contents (stored in the database so any host can serve them)
+  storagePath     String? @db.Text  // legacy on-disk exports
+  data            Bytes? @db.LongBlob  // file contents (stored in the database so any host can serve them)
   bytes           Int
   pageCount       Int?
   createdById     String

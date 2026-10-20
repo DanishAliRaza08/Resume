@@ -1,5 +1,6 @@
 // Resume orchestration: build generation input from verified records, run idempotent generation
 // jobs, persist immutable versions, run validation, and drive the review workflow (spec §5, §10.4).
+import { strs } from "../json";
 import type { Prisma, ProjectMode, ResumeStatus } from "@prisma/client";
 import { generateResume, type GenerationInput, type GenProject } from "../generator";
 import { ResumeContent } from "../resume-schema";
@@ -98,16 +99,16 @@ export async function buildInput(req: ResumeRequest): Promise<GenerationInput> {
       subdomain: p.subdomain,
       startDate: p.startDate.toISOString().slice(0, 10),
       endDate: p.endDate ? p.endDate.toISOString().slice(0, 10) : null,
-      responsibilities: p.responsibilities,
-      outcomes: p.outcomes,
+      responsibilities: strs(p.responsibilities),
+      outcomes: strs(p.outcomes),
       technologies: p.technologies.map((t) => ({ name: t.technology.canonicalName, category: t.technology.category, confirmed: t.confirmed })),
-      template: p.template ? { name: p.template.name, domainBullets: p.template.domainBullets, projectBullets: p.template.projectBullets, qaBullets: p.template.qaBullets } : null,
+      template: p.template ? { name: p.template.name, domainBullets: strs(p.template.domainBullets), projectBullets: strs(p.template.projectBullets), qaBullets: strs(p.template.qaBullets) } : null,
     });
   }
   return {
     candidate: { fullName: candidate.fullName, email: candidate.email, phone: candidate.phone, location: candidate.location, linkedin: candidate.linkedin, targetTitle: req.targetTitle },
     domain: { key: domain.key, name: domain.name, industryPhrase },
-    role: { key: role.key, name: role.name, skillCategories: role.skillCategories, summaryFocus: role.summaryFocus, includeQaBullets: role.includeQaBullets },
+    role: { key: role.key, name: role.name, skillCategories: strs(role.skillCategories), summaryFocus: strs(role.summaryFocus), includeQaBullets: role.includeQaBullets },
     seniority: req.seniority,
     employments,
     projects,

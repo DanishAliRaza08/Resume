@@ -1,3 +1,4 @@
+import { strs } from "@/lib/json";
 import Link from "next/link";
 import { StatusBadge } from "@/components/Badges";
 import { Denied } from "@/components/Denied";
@@ -77,14 +78,14 @@ export default async function Tailor({ params, searchParams }: { params: Promise
             <h2>Proposed edits ({suggestions.length})</h2>
             {suggestions.length === 0 && <p className="muted">No edits proposed — supported requirements are already reflected.</p>}
             {suggestions.map((s) => {
-              const rationale = s.evidenceRefs.find((e) => e.startsWith("rationale:"))?.slice(10);
-              const evidence = s.evidenceRefs.filter((e) => !e.startsWith("rationale:"));
+              const rationale = strs(s.evidenceRefs).find((e) => e.startsWith("rationale:"))?.slice(10);
+              const evidence = strs(s.evidenceRefs).filter((e) => !e.startsWith("rationale:"));
               return (
                 <div key={s.id} id={`s-${s.id}`} className={`bullet-row${s.requiresConfirmation && s.decision === "PROPOSED" ? " needs" : ""}`} style={{ gridTemplateColumns: "1fr" }}>
                   <div className="meta-line small">
                     <StatusBadge value={s.decision} />
                     <span className="badge neutral">{s.section.startsWith("SKILLS:") ? `skills · ${s.section.slice(7)}` : s.section.toLowerCase()}{s.projectRef ? ` · ${projectName(s.projectRef)}` : ""}</span>
-                    {s.jdKeywordRefs.map((k) => <span key={k} className="badge info">JD: {k}</span>)}
+                    {strs(s.jdKeywordRefs).map((k) => <span key={k} className="badge info">JD: {k}</span>)}
                     {s.requiresConfirmation && <span className="badge warn">needs candidate confirmation</span>}
                   </div>
                   {s.originalText && <p className="small"><span className="diff-del">{s.originalText}</span></p>}

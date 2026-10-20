@@ -174,7 +174,7 @@ export async function deleteCandidate(form: FormData) {
  * dates to cover the project, or create one. Lets users enter any client name directly.
  */
 async function upsertEmploymentFor(candidateId: string, e: { employer: string; location: string | null; title: string; start: Date; end: Date | null }) {
-  const existing = await prisma.employment.findFirst({ where: { candidateId, employer: { equals: e.employer, mode: "insensitive" } } });
+  const existing = await prisma.employment.findFirst({ where: { candidateId, employer: { equals: e.employer } } });
   if (!existing) {
     return prisma.employment.create({
       data: { candidateId, employer: e.employer, location: e.location, title: e.title, startDate: e.start, endDate: e.end, evidence: "Entered with project", status: "CANDIDATE_CONFIRMED" },
@@ -282,6 +282,8 @@ export async function proposeProjects(form: FormData) {
           position: r.position,
           title: emp ? `${emp.title} — ${emp.employer}` : `Project ${r.position}`,
           role: emp?.title ?? "",
+          responsibilities: [],
+          outcomes: [],
           domainKey,
           startDate: toDate(r.start),
           endDate: r.end ? toDate(r.end) : null,

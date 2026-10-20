@@ -1,4 +1,5 @@
 // JD analysis and tailoring service (FR-08, FR-09, FR-10) and the "Update Existing Resume" import.
+import { strs } from "../json";
 import { applySuggestions, buildSuggestions, coverageScore, extractRequirements, matchRequirements, requirementKey, type Evidence, type ExtractedRequirement } from "../jd";
 import type { Bullet, ProjectSection, ResumeContent } from "../resume-schema";
 import { ResumeContent as ResumeContentSchema } from "../resume-schema";
@@ -178,8 +179,8 @@ export async function applyAccepted(user: SessionUser, versionId: string, jdId: 
       projectRef: a.projectRef,
       originalText: a.originalText,
       proposedText: a.proposedText,
-      jdKeywordRefs: a.jdKeywordRefs,
-      evidenceRefs: a.evidenceRefs.filter((e) => !e.startsWith("rationale:")),
+      jdKeywordRefs: strs(a.jdKeywordRefs),
+      evidenceRefs: strs(a.evidenceRefs).filter((e) => !e.startsWith("rationale:")),
       requiresConfirmation: false,
       rationale: "",
     })),
@@ -187,7 +188,7 @@ export async function applyAccepted(user: SessionUser, versionId: string, jdId: 
   // Technologies added through confirmed suggestions are recorded on the relevant project too.
   for (const a of accepted) {
     if (a.section === "PROJECT" && a.projectRef) {
-      const techs = a.evidenceRefs.filter((e) => e.startsWith("tech:")).map((e) => e.slice(5));
+      const techs = strs(a.evidenceRefs).filter((e) => e.startsWith("tech:")).map((e) => e.slice(5));
       const p = next.projects.find((x) => x.id === a.projectRef);
       if (p) for (const t of techs) if (!p.technologies.includes(t)) p.technologies.push(t);
     }

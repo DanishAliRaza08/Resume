@@ -1,4 +1,5 @@
 // Server-side access to the technology catalog and settings, with a short in-process cache.
+import { strs } from "../json";
 import { Catalog } from "../text";
 import { prisma } from "./db";
 
@@ -9,7 +10,7 @@ export async function loadCatalog(): Promise<{ catalog: Catalog; availability: M
   const techs = await prisma.technology.findMany({ where: { lifecycle: { not: "RETIRED" } } });
   cached = {
     at: Date.now(),
-    catalog: new Catalog(techs.map((t) => ({ id: t.id, canonicalName: t.canonicalName, aliases: t.aliases, category: t.category, availableFrom: t.availableFrom }))),
+    catalog: new Catalog(techs.map((t) => ({ id: t.id, canonicalName: t.canonicalName, aliases: strs(t.aliases), category: t.category, availableFrom: t.availableFrom }))),
     availability: new Map(techs.map((t) => [t.canonicalName, t.availableFrom])),
   };
   return cached;
