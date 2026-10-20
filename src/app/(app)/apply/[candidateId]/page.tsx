@@ -4,7 +4,8 @@ import { Denied } from "@/components/Denied";
 import { Flash } from "@/components/Flash";
 import { SCREENING_QUESTIONS, missingRequired } from "@/data/screening";
 import { fmtDateTime } from "@/lib/format";
-import { getProfile, report } from "@/lib/server/apply-service";
+import { answerCode, getProfile, report } from "@/lib/server/apply-service";
+import { CopyButton } from "@/components/CopyButton";
 import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
 import { AccessDenied, candidateWritable } from "@/lib/server/permissions";
@@ -114,9 +115,38 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
       )}
 
       {writable && (
+        <section className="card" id="helper">
+          <h2>2. Browser helper (fills Dice forms for you)</h2>
+          <p className="muted small">The Dice Helper runs in your own Chrome while you&apos;re on Dice. On search results it collects every job link; on an application it fills text boxes, dropdowns, yes/no buttons and tick boxes from the answers above. Questions it doesn&apos;t know are outlined in orange. You review and click Next / Submit.</p>
+          <ol className="small stack">
+            <li><a className="btn small" href="/api/extension">Download Dice Helper (.zip)</a> and unzip it.</li>
+            <li>In Chrome open <code>chrome://extensions</code>, turn on <strong>Developer mode</strong> (top right), click <strong>Load unpacked</strong> and choose the unzipped <code>dice-helper</code> folder.</li>
+            <li>Click the puzzle-piece icon → <strong>Dice Helper</strong>, paste this person&apos;s answer code and click <strong>Save answers</strong>. Paste a new code whenever the answers change.</li>
+          </ol>
+          <label htmlFor="answerCode">Answer code for {profile.candidate.fullName}</label>
+          <textarea id="answerCode" readOnly value={answerCode(profile.candidate.fullName, profile.answers, profile.custom)} style={{ minHeight: 60, fontFamily: "ui-monospace, monospace", fontSize: 11 }} />
+          <div className="actions" style={{ marginTop: 6 }}><CopyButton text={answerCode(profile.candidate.fullName, profile.answers, profile.custom)} label="Copy answer code" /></div>
+        </section>
+      )}
+
+      {writable && (
+        <form action="https://www.dice.com/jobs" method="get" className="card" id="find" target="_blank" rel="noopener noreferrer">
+          <h2>3. Find jobs on Dice</h2>
+          <p className="muted small">Opens the Dice search in a new tab. With the helper installed, click <strong>Add job links on this page</strong> on each results page, then <strong>Copy collected links</strong> and paste them below.</p>
+          <div className="row">
+            <div><label htmlFor="keyword">Job title or keywords</label><input id="keyword" name="q" type="text" required defaultValue={profile.candidate.targetTitle ?? ""} placeholder="Business Analyst" /></div>
+            <div><label htmlFor="location">Location <span className="hint">(blank = anywhere)</span></label><input id="location" name="location" type="text" /></div>
+          </div>
+          <label className="check"><input type="checkbox" name="filters.easyApply" value="true" defaultChecked /> Easy Apply jobs only</label>
+          <label className="check"><input type="checkbox" name="filters.isRemote" value="true" /> Remote only</label>
+          <div className="actions" style={{ marginTop: 8 }}><button className="btn" type="submit">Search Dice ↗</button></div>
+        </form>
+      )}
+
+      {writable && (
         <form action={addDiceJobs} className="card" id="jobs">
           <input type="hidden" name="candidateId" value={candidateId} />
-          <h2>2. Add Dice jobs</h2>
+          <h2>4. Add Dice jobs</h2>
           <p className="muted small">Search on Dice, then paste the job links here — as many as you like, one per line (up to 500 at a time). Jobs already in the list are skipped, so nobody applies twice.</p>
           <textarea name="links" style={{ minHeight: 120 }} placeholder={"https://www.dice.com/job-detail/…\nhttps://www.dice.com/job-detail/…"} required />
           <div className="actions" style={{ marginTop: 8 }}><button className="btn" type="submit">Add jobs</button></div>
@@ -125,7 +155,7 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
 
       <section className="card" id="queue">
         <div className="pagehead" style={{ marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>3. Jobs ({stats.total})</h2>
+          <h2 style={{ margin: 0 }}>5. Jobs ({stats.total})</h2>
           <div className="actions small">
             {["", "READY", "OPENED", "APPLIED", "SKIPPED", "NOT_AVAILABLE"].map((s) => (
               <Link key={s} href={`/apply/${candidateId}${s ? `?status=${s}` : ""}#queue`} className={`badge ${sp.status === s || (!sp.status && !s) ? "info" : "neutral"}`}>{s ? s.toLowerCase().replace("_", " ") : "all"}</Link>

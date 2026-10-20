@@ -75,3 +75,4 @@ export async function provideDescription(form: FormData) {
   });
   redirect(`/apply/${candidateId}/session?id=${id}`);
 }
+

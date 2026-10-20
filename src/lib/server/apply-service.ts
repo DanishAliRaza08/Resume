@@ -182,3 +182,18 @@ export function answerSheet(answers: Answers, custom: CustomAnswer[]) {
   ];
 }
 
+
+/**
+ * Portable "answer code" for the browser helper: the saved answers plus the keywords used to
+ * recognise each question on an application form. Only answered questions are included.
+ */
+export function answerCode(candidateName: string, answers: Answers, custom: CustomAnswer[]): string {
+  const payload = {
+    v: 1,
+    candidate: candidateName,
+    answers: SCREENING_QUESTIONS.filter((q) => (answers[q.key] ?? "").trim()).map((q) => ({ key: q.key, label: q.label, type: q.type, keywords: q.keywords, answer: answers[q.key].trim() })),
+    custom: custom.filter((c) => c.question.trim() && c.answer.trim()),
+  };
+  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
+}
+

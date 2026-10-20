@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Dice Helper</title>
+  <style>
+    body { font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Arial, sans-serif; width: 320px; margin: 0; padding: 12px; color: #1b2330; }
+    h1 { font-size: 15px; margin: 0 0 6px; }
+    textarea { width: 100%; box-sizing: border-box; min-height: 90px; font: 11px ui-monospace, Menlo, monospace; }
+    button { padding: 6px 10px; border-radius: 6px; border: 1px solid #1f4e79; background: #1f4e79; color: #fff; font-weight: 600; cursor: pointer; }
+    button.sec { background: #fff; color: #1b2330; border-color: #c9d1dc; }
+    .muted { color: #5d6878; font-size: 12px; } .ok { color: #1d6b3a; } .bad { color: #a3231c; }
+    .row { margin: 8px 0; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  </style>
+</head>
+<body>
+  <h1>Dice Helper</h1>
+  <p class="muted">Open <b>Dice Apply</b> in Resume Builder, copy the person's <b>answer code</b>, and paste it here.</p>
+  <div id="current" class="row muted"></div>
+  <textarea id="code" placeholder="Paste answer code"></textarea>
+  <div class="row"><button id="save">Save answers</button><button id="forget" class="sec">Remove</button></div>
+  <div class="row"><label><input type="checkbox" id="auto" /> Fill each new application step automatically</label></div>
+  <div class="row"><button id="copy" class="sec">Copy collected job links</button><span id="count" class="muted"></span></div>
+  <div id="msg" class="row"></div>
+  <p class="muted">Answers are stored only in this browser. You always review and submit applications yourself.</p>
+  <script src="popup.js"></script>
+</body>
+</html>

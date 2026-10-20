@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Builder — Dice Helper",
+  "version": "1.0.0",
+  "description": "Collect Dice job links and fill Dice application forms with your saved answers. You review and submit every application yourself.",
+  "permissions": ["storage"],
+  "action": { "default_popup": "popup.html", "default_title": "Dice Helper" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.dice.com/*", "https://dice.com/*", "https://*.dice.com/*"],
+      "js": ["filler.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
