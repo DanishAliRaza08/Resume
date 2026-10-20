@@ -13,7 +13,7 @@
       if (!node || !node.querySelectorAll) return;
       out.push(...node.querySelectorAll(selector));
       // Search web-component shadow roots, but never the helper's own panel.
-      for (const el of node.querySelectorAll("*")) if (el.shadowRoot && el.id !== "resume-builder-dice-helper") visit(el.shadowRoot);
+      for (const el of node.querySelectorAll("*")) if (el.shadowRoot && el.id !== "resume-builder-dice-helper" && el.id !== "rb-dice-helper") visit(el.shadowRoot);
     };
     visit(root);
     return out;

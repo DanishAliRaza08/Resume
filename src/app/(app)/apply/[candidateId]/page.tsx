@@ -6,6 +6,11 @@ import { SCREENING_QUESTIONS, missingRequired } from "@/data/screening";
 import { fmtDateTime } from "@/lib/format";
 import { answerCode, getProfile, report } from "@/lib/server/apply-service";
 import { CopyButton } from "@/components/CopyButton";
+import { bookmarkletHref } from "@/lib/server/bookmarklet";
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
 import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
 import { AccessDenied, candidateWritable } from "@/lib/server/permissions";
@@ -31,6 +36,7 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
     prisma.jobApplication.findMany({ where: { candidateId, ...(sp.status ? { status: sp.status as "READY" } : {}) }, orderBy: [{ createdAt: "desc" }], take: 500 }),
   ]);
   const missing = missingRequired(profile.answers);
+  const code = answerCode(profile.candidate.fullName, profile.answers, profile.custom);
   const custom = [...profile.custom, { question: "", answer: "" }, { question: "", answer: "" }];
 
   return (
@@ -116,23 +122,38 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
 
       {writable && (
         <section className="card" id="helper">
-          <h2>2. Browser helper (fills Dice forms for you)</h2>
-          <p className="muted small">The Dice Helper runs in your own Chrome while you&apos;re on Dice. On search results it collects every job link; on an application it fills text boxes, dropdowns, yes/no buttons and tick boxes from the answers above. Questions it doesn&apos;t know are outlined in orange. You review and click Next / Submit.</p>
-          <ol className="small stack">
-            <li><a className="btn small" href="/api/extension">Download Dice Helper (.zip)</a> and unzip it.</li>
-            <li>In Chrome open <code>chrome://extensions</code>, turn on <strong>Developer mode</strong> (top right), click <strong>Load unpacked</strong> and choose the unzipped <code>dice-helper</code> folder.</li>
-            <li>Click the puzzle-piece icon → <strong>Dice Helper</strong>, paste this person&apos;s answer code and click <strong>Save answers</strong>. Paste a new code whenever the answers change.</li>
-          </ol>
-          <label htmlFor="answerCode">Answer code for {profile.candidate.fullName}</label>
-          <textarea id="answerCode" readOnly value={answerCode(profile.candidate.fullName, profile.answers, profile.custom)} style={{ minHeight: 60, fontFamily: "ui-monospace, monospace", fontSize: 11 }} />
-          <div className="actions" style={{ marginTop: 6 }}><CopyButton text={answerCode(profile.candidate.fullName, profile.answers, profile.custom)} label="Copy answer code" /></div>
+          <h2>2. The “Fill Dice” button (nothing to install)</h2>
+          <p>This yellow button fills Dice application forms with the answers above, and collects job links from Dice search pages.</p>
+          <div className="bookmark-steps">
+            <div className="bstep"><span className="bnum">1</span><div><strong>Show the bookmarks bar</strong><br />Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> (on a Mac: <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd>).</div></div>
+            <div className="bstep"><span className="bnum">2</span><div><strong>Drag this yellow button up onto the bookmarks bar</strong> (hold the mouse button, move up, let go):
+              <div style={{ margin: "12px 0" }} dangerouslySetInnerHTML={{ __html: `<a class="bookmarklet" href="${bookmarkletHref(code)}" title="Drag me to your bookmarks bar" onclick="alert('Drag this button up to your bookmarks bar — don\\'t click it here.'); return false;">⭐ Fill Dice — ${escapeHtml(profile.candidate.fullName)}</a>` }} />
+            </div></div>
+            <div className="bstep"><span className="bnum">3</span><div><strong>On Dice, click the bookmark</strong>. A box appears:
+              <ul className="small">
+                <li>On an application: <b>✍ Fill my answers</b> — then check and click Next / Submit on Dice.</li>
+                <li>On search results: <b>➕ Save job links</b> on each page, then <b>📋 Copy</b> and paste them in step 4 below.</li>
+              </ul>
+            </div></div>
+          </div>
+          <p className="hint">If you change any answers above, save them and drag the new button again (you can delete the old bookmark). Questions the button doesn&apos;t know get an orange box: answer those yourself.</p>
+          <details style={{ marginTop: 8 }}>
+            <summary className="small">Advanced: Chrome extension instead of the button</summary>
+            <ol className="small stack">
+              <li><a className="btn small" href="/api/extension">Download Dice Helper (.zip)</a> and unzip it.</li>
+              <li>In Chrome open <code>chrome://extensions</code>, turn on <strong>Developer mode</strong>, click <strong>Load unpacked</strong> and choose the <code>dice-helper</code> folder.</li>
+              <li>Open the extension, paste the answer code below and click <strong>Save answers</strong>.</li>
+            </ol>
+            <textarea id="answerCode" readOnly value={code} aria-label="Answer code" style={{ minHeight: 50, fontFamily: "ui-monospace, monospace", fontSize: 11 }} />
+            <div className="actions" style={{ marginTop: 6 }}><CopyButton text={code} label="Copy answer code" /></div>
+          </details>
         </section>
       )}
 
       {writable && (
         <form action="https://www.dice.com/jobs" method="get" className="card" id="find" target="_blank" rel="noopener noreferrer">
           <h2>3. Find jobs on Dice</h2>
-          <p className="muted small">Opens the Dice search in a new tab. With the helper installed, click <strong>Add job links on this page</strong> on each results page, then <strong>Copy collected links</strong> and paste them below.</p>
+          <p className="muted small">Opens the Dice search in a new tab. On each results page click your <strong>⭐ Fill Dice</strong> bookmark → <strong>Save job links</strong>; at the end click <strong>Copy</strong> and paste them below.</p>
           <div className="row">
             <div><label htmlFor="keyword">Job title or keywords</label><input id="keyword" name="q" type="text" required defaultValue={profile.candidate.targetTitle ?? ""} placeholder="Business Analyst" /></div>
             <div><label htmlFor="location">Location <span className="hint">(blank = anywhere)</span></label><input id="location" name="location" type="text" /></div>
