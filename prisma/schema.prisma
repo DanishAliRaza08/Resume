@@ -4,7 +4,7 @@
 generator client {
   provider      = "prisma-client-js"
   // "native" plus the Linux variants used by common hosts (Hostinger uses CloudLinux / RHEL-family servers).
-  binaryTargets = ["native", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 // MySQL / MariaDB (e.g. Hostinger databases). Lists are stored as JSON arrays because MySQL has

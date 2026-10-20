@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/server/auth";
 import { login } from "./actions";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  if (await getSessionUser()) redirect("/");
+  if (await getSessionUser().catch(() => null)) redirect("/");
   const sp = await searchParams;
   return (
     <div className="login-wrap">

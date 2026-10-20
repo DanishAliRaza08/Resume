@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { audit } from "@/lib/server/audit";
 import { createSession } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
+import { explainDbError } from "@/lib/server/db-status";
 import { str, withMessage } from "@/lib/server/forms";
 import { hashPassword, passwordProblems } from "@/lib/server/passwords";
 
@@ -28,7 +29,15 @@ export async function signup(form: FormData) {
   const problem = passwordProblems(password);
   if (problem) redirect(withMessage("/signup", "error", problem));
   if (password !== str(form, "confirm")) redirect(withMessage("/signup", "error", "Passwords do not match."));
-  if (await prisma.user.findUnique({ where: { email } })) {
+  let existing: unknown;
+  try {
+    existing = await prisma.user.findUnique({ where: { email } });
+  } catch (err) {
+    console.error("[signup] database error", err);
+    const d = explainDbError(err);
+    redirect(withMessage("/signup", "error", `Sign-up is unavailable: ${d.problem} (${d.code}). Open /api/health for details.`));
+  }
+  if (existing) {
     redirect(withMessage("/signup", "error", "An account with that email already exists. Sign in instead."));
   }
   // Only the address configured in ADMIN_EMAIL becomes an administrator; everyone else gets a normal account.

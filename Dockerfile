@@ -20,5 +20,5 @@ COPY --from=build /app ./
 RUN npm prune --omit=dev && chown -R node:node /app
 USER node
 EXPOSE 3000
-# Applies migrations, loads reference data (idempotent), then starts the server.
+# Starts the server; it applies migrations and loads reference data on start-up (src/instrumentation.ts).
 CMD ["npm", "run", "start:prod"]

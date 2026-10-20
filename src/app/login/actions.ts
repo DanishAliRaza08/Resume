@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { audit } from "@/lib/server/audit";
 import { createSession, destroySession, getSessionUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
+import { explainDbError } from "@/lib/server/db-status";
 import { str, withMessage } from "@/lib/server/forms";
 import { verifyPassword } from "@/lib/server/passwords";
 
@@ -14,7 +15,11 @@ export async function login(form: FormData) {
   const password = str(form, "password");
   const f = failures.get(email);
   if (f && f.until > Date.now()) redirect(withMessage("/login", "error", "Too many attempts. Try again in a few minutes."));
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email } }).catch((err: unknown) => {
+    console.error("[login] database error", err);
+    const d = explainDbError(err);
+    redirect(withMessage("/login", "error", `Sign-in is unavailable: ${d.problem} (${d.code}). Open /api/health for details.`));
+  });
   const ok = user && user.status === "ACTIVE" && (await verifyPassword(password, user.passwordHash));
   if (!ok) {
     const next = { count: (f?.count ?? 0) + 1, until: 0 };

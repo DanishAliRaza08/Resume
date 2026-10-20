@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/server/db";
+import { diagnoseDatabase } from "@/lib/server/db-status";
+import { setupState } from "@/lib/server/setup";
 
+export const dynamic = "force-dynamic";
+
+// GET /api/health — app and database status in plain English (no secrets).
 export async function GET() {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({ status: "ok" });
-  } catch {
-    return NextResponse.json({ status: "degraded" }, { status: 503 });
-  }
+  const database = await diagnoseDatabase();
+  const setup = setupState();
+  const body = {
+    status: database.ok ? "ok" : "error",
+    app: "Benchsale Dan",
+    database,
+    setup,
+    node: process.version,
+    platform: `${process.platform}-${process.arch}`,
+  };
+  return NextResponse.json(body, { status: database.ok ? 200 : 503, headers: { "Cache-Control": "no-store" } });
 }

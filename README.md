@@ -43,7 +43,7 @@ Requirements: Node 20+ and MySQL 8+ or MariaDB 10.6+. LibreOffice is optional; i
 npm install
 cp .env.example .env            # set DATABASE_URL and ADMIN_EMAIL
 npm run build
-npm start                       # applies migrations, loads reference data, starts on :3000
+npm start                       # starts on :3000; creates tables + loads reference data on start-up
 ```
 
 Open http://localhost:3000, choose **Create a free account**, and sign up. Sign up with the
@@ -77,9 +77,9 @@ Your connection string is:
 2. Choose Node.js **20 or newer**. If hPanel asks for commands, use these:
    - Install: `npm install`
    - Build: `npm run build`
-   - Start: `npm start`. This creates or updates the tables, loads the reference data (5
-     industries, about 190 technologies, 25 templates and 646 clients), then starts the server.
-     Every step is safe to repeat.
+   - Start: `npm start` (or whatever hPanel uses by default). When the server starts it creates or
+     updates the tables and loads the reference data (5 industries, about 190 technologies,
+     25 templates and 646 clients) by itself. Every step is safe to repeat.
 3. Add these **environment variables**:
    - `DATABASE_URL`: the connection string from step 1.
    - `APP_URL`: your site address, such as `https://resumes.yourdomain.com`.
@@ -97,7 +97,9 @@ use the included Dockerfile:
 Put Nginx or Hostinger's proxy in front with HTTPS.
 
 ### 3. Check it
-- Visit `https://your-domain/api/health`. It should return `{"status":"ok"}`.
+- Visit `https://your-domain/api/health`. It should return `"status":"ok"` with `"seed":"ok"`.
+  If something is wrong it says in plain words what (wrong password, database not found, tables
+  not created, …) and how to fix it. It never shows the password.
 - Sign up with `ADMIN_EMAIL` and confirm **Administration** appears in the menu.
 - Create a test resume and download it as PDF and Word.
 

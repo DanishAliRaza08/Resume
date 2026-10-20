@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/server/auth";
 import { signup } from "./actions";
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  if (await getSessionUser()) redirect("/");
+  if (await getSessionUser().catch(() => null)) redirect("/");
   return (
     <div className="login-wrap">
       <div className="card login-card">
