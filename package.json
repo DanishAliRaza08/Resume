@@ -5,7 +5,7 @@
   "description": "Benchsale Dan \u2014 multi-domain resume builder, JD tailoring and Dice Apply assistant. Developed by Danish Ali Raza.",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/gen-migrations.mjs && prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
