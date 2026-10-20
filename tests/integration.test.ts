@@ -116,4 +116,35 @@ suite("service acceptance tests (database)", () => {
     expect(await prisma.resume.count({ where: { id: resume.id } })).toBe(0);
     expect(await prisma.resumeVersion.count({ where: { resumeId: resume.id } })).toBe(0);
   });
+
+  it("Dice Apply: queues jobs without duplicates, tailors per job, tracks and reports", async () => {
+    const apply = await import("@/lib/server/apply-service");
+    const ids = Array.from({ length: 3 }, () => randomUUID());
+    const links = ids.map((id) => `https://www.dice.com/job-detail/${id}`).join("\n");
+    const first = await apply.addJobs(creator, candidateId, `${links}\nhttps://example.com/not-dice`);
+    expect(first.added).toBe(3);
+    expect(first.invalid).toHaveLength(1);
+    const again = await apply.addJobs(creator, candidateId, links);
+    expect(again.added).toBe(0);
+    expect(again.duplicates).toBe(3);
+
+    const job = await prisma.jobApplication.findFirstOrThrow({ where: { candidateId, jobKey: `dice:${ids[0]}` } });
+    const prepared = await apply.prepareJob(creator, job.id, "Senior Business Analyst. Requirements: Loan IQ, SQL, JIRA and Confluence. Gap analysis and UAT. Experience with nCino preferred.");
+    expect(prepared.coverage).toBeGreaterThan(0);
+    const tailored = await apply.tailoredForApplication(creator, job.id);
+    expect(tailored.content.header.fullName).toContain("Jordan");
+    const text = JSON.stringify(tailored.content);
+    expect(text).not.toContain("nCino"); // unproven skills are never added
+
+    await apply.setStatus(creator, job.id, "APPLIED");
+    await apply.setStatus(creator, (await prisma.jobApplication.findFirstOrThrow({ where: { candidateId, jobKey: `dice:${ids[1]}` } })).id, "SKIPPED");
+    const r = await apply.report(creator, candidateId);
+    expect(r.applied).toBeGreaterThanOrEqual(1);
+    expect(r.today).toBeGreaterThanOrEqual(1);
+    expect(r.skipped).toBeGreaterThanOrEqual(1);
+
+    await expect(apply.setStatus(creator2, job.id, "READY")).rejects.toThrow(perms.AccessDenied);
+    await expect(apply.addJobs(creator2, candidateId, links)).rejects.toThrow(perms.AccessDenied);
+  });
 });
+

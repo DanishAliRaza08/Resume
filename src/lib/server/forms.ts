@@ -19,8 +19,12 @@ export function lines(form: FormData, key: string): string[] {
 }
 
 export function withMessage(path: string, kind: "error" | "ok", message: string): string {
-  const sep = path.includes("?") ? "&" : "?";
-  return `${path}${sep}${kind}=${encodeURIComponent(message.slice(0, 300))}`;
+  // Keep any #anchor at the end so the message stays in the query string.
+  const hashAt = path.indexOf("#");
+  const base = hashAt >= 0 ? path.slice(0, hashAt) : path;
+  const hash = hashAt >= 0 ? path.slice(hashAt) : "";
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}${kind}=${encodeURIComponent(message.slice(0, 300))}${hash}`;
 }
 
 export function isRedirect(err: unknown): boolean {

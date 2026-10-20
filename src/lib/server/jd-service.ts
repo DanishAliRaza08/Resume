@@ -73,7 +73,7 @@ function toExtracted(rows: { keyword: string; canonical: string; technologyId: s
   });
 }
 
-async function evidenceFor(candidateId: string, content: ResumeContent): Promise<Evidence> {
+export async function evidenceFor(candidateId: string, content: ResumeContent): Promise<Evidence> {
   const { candidate, employments } = await candidateEvidence(candidateId);
   const confirmedTechs = new Map<string, string[]>();
   const add = (name: string, ref: string) => confirmedTechs.set(name, [...new Set([...(confirmedTechs.get(name) ?? []), ref])]);
@@ -332,3 +332,17 @@ export async function importParsedResume(
   return { candidate, resume, version };
 }
 
+
+/**
+ * Tailor a resume snapshot to a job description without saving anything: applies only edits that
+ * are fully backed by the candidate's evidence (no confirmation needed) and returns the coverage.
+ */
+export async function tailorContent(candidateId: string, content: ResumeContent, jdText: string) {
+  const { catalog } = await loadCatalog();
+  const reqs = extractRequirements(jdText, catalog);
+  const evidence = await evidenceFor(candidateId, content);
+  const matches = matchRequirements(reqs, content, evidence, catalog);
+  const safe = buildSuggestions(reqs, matches, content, evidence, catalog).filter((s) => !s.requiresConfirmation);
+  const tailored = applySuggestions(content, safe);
+  return { content: tailored, score: coverageScore(reqs, matches), applied: safe.length, missing: reqs.filter((r) => matches.find((m) => m.requirementKey === requirementKey(r))?.state === "MISSING").map((r) => r.keyword) };
+}

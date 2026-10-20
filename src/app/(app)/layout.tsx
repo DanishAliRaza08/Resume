@@ -14,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ? [
               { href: "/resumes/new", label: "Create New Resume" },
               { href: "/update", label: "Tailor Existing Resume" },
+              { href: "/apply", label: "Dice Apply" },
             ]
           : []),
         { href: "/resumes", label: "My Resumes" },

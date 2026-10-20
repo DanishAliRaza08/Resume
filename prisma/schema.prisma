@@ -104,6 +104,7 @@ model User {
   candidates     Candidate[]  @relation("CandidateOwner")
   resumeVersions ResumeVersion[]
   jobDescriptions JobDescription[]
+  applications   JobApplication[]
   auditEvents    AuditEvent[]
 }
 
@@ -268,6 +269,8 @@ model Candidate {
   skills             CandidateSkill[]
   projects           Project[]
   resumes            Resume[]
+  applicantProfile   ApplicantProfile?
+  applications       JobApplication[]
 
   @@index([ownerId])
   @@index([domainKey])
@@ -551,4 +554,55 @@ model Setting {
   key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------------------------------------
+// Dice Apply assistant
+// ------------------------------------------------------------------------------------------------
+
+/** Saved answers to common application/screening questions, per candidate. */
+model ApplicantProfile {
+  id          String    @id @default(cuid())
+  candidateId String    @unique
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  baseResumeId String?
+  answers     Json      // Record<questionKey, string>
+  custom      Json      // [{ question, answer }]
+  updatedAt   DateTime  @updatedAt
+}
+
+enum ApplicationStatus {
+  READY
+  OPENED
+  APPLIED
+  SKIPPED
+  NOT_AVAILABLE
+}
+
+/** One job the candidate is applying to. The user submits on the job site; the app tracks it. */
+model JobApplication {
+  id               String            @id @default(cuid())
+  ownerId          String
+  owner            User              @relation(fields: [ownerId], references: [id])
+  candidateId      String
+  candidate        Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobKey           String            // Dice job id, or a hash of the URL
+  jobUrl           String            @db.VarChar(1000)
+  source           String            @default("DICE")
+  title            String?           @db.VarChar(300)
+  company          String?           @db.VarChar(300)
+  location         String?           @db.VarChar(300)
+  jobDescriptionId String?
+  coverage         Int?
+  status           ApplicationStatus @default(READY)
+  notes            String?           @db.Text
+  fetchError       String?           @db.VarChar(500)
+  openedAt         DateTime?
+  appliedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([candidateId, jobKey])
+  @@index([ownerId, status])
+  @@index([appliedAt])
 }

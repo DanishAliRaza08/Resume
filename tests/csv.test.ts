@@ -13,3 +13,11 @@ describe("csv", () => {
     expect(csvRecords("Name,Domain\r\nX,BANKING\r\n")).toEqual([{ name: "X", domain: "BANKING" }]);
   });
 });
+
+describe("withMessage", () => {
+  it("keeps the anchor after the message", async () => {
+    const { withMessage } = await import("@/lib/server/forms");
+    expect(withMessage("/apply/x#jobs", "ok", "Saved")).toBe("/apply/x?ok=Saved#jobs");
+    expect(withMessage("/a?v=1", "error", "No")).toBe("/a?v=1&error=No");
+  });
+});
