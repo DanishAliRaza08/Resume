@@ -100,7 +100,7 @@ export function ResumeEditor({
                 ))}
               </div>
               {!readOnly && (
-                <div className="actions" style={{ flexDirection: "column", alignItems: "stretch" }}>
+                <div className="actions bullet-tools">
                   <button type="button" className="btn small" aria-label="Move up" disabled={idx === 0} onClick={() => update((c) => { const l = listFor(c, projectId); [l[idx - 1], l[idx]] = [l[idx], l[idx - 1]]; })}>↑</button>
                   <button type="button" className="btn small" aria-label="Move down" disabled={idx === list.length - 1} onClick={() => update((c) => { const l = listFor(c, projectId); [l[idx + 1], l[idx]] = [l[idx], l[idx + 1]]; })}>↓</button>
                   <button type="button" className="btn small danger" aria-label="Delete bullet" onClick={() => update((c) => { listFor(c, projectId).splice(idx, 1); })}>✕</button>

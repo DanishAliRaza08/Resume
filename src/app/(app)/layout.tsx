@@ -1,4 +1,5 @@
 import { BrandName, Credit } from "@/components/Logo";
+import { MobileMenu } from "@/components/MobileMenu";
 import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/server/auth";
 import { logout } from "../login/actions";
@@ -38,7 +39,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ];
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <MobileMenu>
+        <BrandName />
+      </MobileMenu>
+      <aside className="sidebar" id="sidebar">
         <div className="brand">
           <BrandName />
         </div>
