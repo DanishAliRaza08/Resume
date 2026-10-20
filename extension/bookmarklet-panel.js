@@ -40,7 +40,7 @@
     "textarea{width:100%;box-sizing:border-box;min-height:70px;font-size:11px}" +
     "label{display:flex;gap:8px;align-items:center;font-size:14px}" +
     "</style>" +
-    '<div class="p" role="dialog" aria-label="Dice Helper"><div class="h"><span>Dice Helper — ' +
+    '<div class="p" role="dialog" aria-label="Benchsale Dan Dice Helper"><div class="h"><span>Benchsale Dan — ' +
     esc(profile && profile.candidate ? profile.candidate : "") +
     '</span><button id="x" aria-label="Close">×</button></div><div class="b" id="b"></div></div>';
   document.documentElement.appendChild(host);
@@ -103,7 +103,7 @@
     bind("copy", "click", function () {
       var list = load().join("\n");
       var done = function () {
-        render({ text: "Copied! Paste them into “Add Dice jobs” in Resume Builder.", cls: "ok" });
+        render({ text: "Copied! Paste them into “Add Dice jobs” in Benchsale Dan.", cls: "ok" });
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(list).then(done, function () {
@@ -123,7 +123,7 @@
   }
 
   function fill(fromClick) {
-    if (!profile) return render({ text: "This bookmark has no answers. Make a new one in Resume Builder.", cls: "w" });
+    if (!profile) return render({ text: "This bookmark has no answers. Make a new one in Benchsale Dan.", cls: "w" });
     var r = F.fillRoot(document, profile);
     var needs = r.needsYou.filter(Boolean).slice(0, 6);
     if (fromClick || r.filled || needs.length) {

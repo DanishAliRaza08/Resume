@@ -155,7 +155,7 @@ export async function renderDocx(content: ResumeContent, spacing: Spacing = "nor
   }
 
   const doc = new Document({
-    creator: "Resume Builder",
+    creator: "Benchsale Dan",
     title: `${content.header.fullName} — Resume`,
     styles: { default: { document: { run: { font, size } } } },
     numbering: {
@@ -183,7 +183,7 @@ export async function renderPdf(content: ResumeContent, spacing: Spacing = "norm
   const F = d.pdfFont;
   const size = d.bodySize;
   const margin = tight ? 40 : 54;
-  const doc = new PDFDocument({ size: "LETTER", margins: { top: tight ? 40 : 50, bottom: tight ? 40 : 50, left: margin, right: margin }, bufferPages: true, info: { Title: `${content.header.fullName} — Resume`, Creator: "Resume Builder" } });
+  const doc = new PDFDocument({ size: "LETTER", margins: { top: tight ? 40 : 50, bottom: tight ? 40 : 50, left: margin, right: margin }, bufferPages: true, info: { Title: `${content.header.fullName} — Resume`, Creator: "Benchsale Dan" } });
   const chunks: Buffer[] = [];
   doc.on("data", (c: Buffer) => chunks.push(c));
   const done = new Promise<void>((resolve) => doc.on("end", () => resolve()));

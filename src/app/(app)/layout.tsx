@@ -1,3 +1,4 @@
+import { BrandName, Credit } from "@/components/Logo";
 import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/server/auth";
 import { logout } from "../login/actions";
@@ -39,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          Resume Builder<small>Multi-domain · ATS optimization</small>
+          <BrandName />
         </div>
         <Nav groups={groups.filter((g) => g.items.length > 0)} />
         <div className="userbox">
@@ -49,8 +50,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <button className="btn small" type="submit">Sign out</button>
           </form>
         </div>
+        <Credit />
       </aside>
-      <main id="main">{children}</main>
+      <main id="main">
+        {children}
+        <footer className="appfooter">Benchsale Dan · Developed by Danish Ali Raza · © {new Date().getFullYear()}</footer>
+      </main>
     </div>
   );
 }

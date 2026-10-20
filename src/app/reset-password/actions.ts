@@ -18,7 +18,7 @@ export async function requestReset(form: FormData) {
     const token = await issueResetToken(user.id);
     await sendMail(
       user.email,
-      "Reset your Resume Builder password",
+      "Reset your Benchsale Dan password",
       `Hi ${user.name},\n\nUse this link within one hour to set a new password:\n${appUrl()}/reset-password?token=${token}\n\nIf you did not ask for this, you can ignore this email.`,
     );
     await audit(user.id, "auth.reset.request", "User", user.id);

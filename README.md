@@ -1,4 +1,6 @@
-# Multi-Domain Resume Builder & ATS Optimization Platform
+# Benchsale Dan
+
+**Resume builder, JD tailoring and Dice Apply — developed by Danish Ali Raza.**
 
 A secure web application that standardizes resume production for Banking, Retail, Healthcare,
 Pharma and P&C Insurance. It implements the *Multi-Domain Resume Builder — Product R&D*

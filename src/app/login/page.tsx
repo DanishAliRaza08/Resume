@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Flash } from "@/components/Flash";
+import { BrandName, Credit } from "@/components/Logo";
 import { getSessionUser } from "@/lib/server/auth";
 import { login } from "./actions";
 
@@ -9,8 +10,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <div className="login-wrap">
       <div className="card login-card">
-        <h1>Resume Builder</h1>
-        <p className="muted">Sign in to continue.</p>
+        <div style={{ marginBottom: 12 }}><BrandName /></div>
+        <h1>Sign in</h1>
+        <p className="muted">Welcome back.</p>
         <Flash searchParams={sp} />
         <form action={login}>
           <label htmlFor="email">Email</label>
@@ -23,6 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         </form>
         <p style={{ marginTop: 16 }}>New here? <a href="/signup"><strong>Create a free account</strong></a></p>
+        <Credit />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Flash } from "@/components/Flash";
+import { BrandName, Credit } from "@/components/Logo";
 import { getSessionUser } from "@/lib/server/auth";
 import { signup } from "./actions";
 
@@ -9,6 +10,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   return (
     <div className="login-wrap">
       <div className="card login-card">
+        <div style={{ marginBottom: 12 }}><BrandName /></div>
         <h1>Create your account</h1>
         <p className="muted">Free. Build, tailor and download professional resumes.</p>
         <Flash searchParams={await searchParams} />
@@ -31,6 +33,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           </div>
           <p className="signup-note" style={{ marginTop: 12 }}>Your resumes are private to your account. Only include information you are comfortable storing.</p>
         </form>
+        <Credit />
       </div>
     </div>
   );

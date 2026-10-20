@@ -15,7 +15,7 @@ export async function sendMail(to: string, subject: string, text: string): Promi
   }
   try {
     const transport = nodemailer.createTransport(process.env.SMTP_URL);
-    await transport.sendMail({ from: process.env.MAIL_FROM ?? "Resume Builder <no-reply@localhost>", to, subject, text });
+    await transport.sendMail({ from: process.env.MAIL_FROM ?? "Benchsale Dan <no-reply@localhost>", to, subject, text });
     return true;
   } catch (err) {
     logEvent("error", "email send failed", { subject, error: String(err).slice(0, 200) });

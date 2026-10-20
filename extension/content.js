@@ -25,8 +25,8 @@
       .easy { background: #e3f3e8; color: #1d6b3a; } .ext { background: #fdf2d8; color: #8a5a00; }
       label { display: flex; gap: 6px; align-items: center; font-size: 12px; }
     </style>
-    <div class="panel" role="complementary" aria-label="Resume Builder Dice helper">
-      <div class="head"><b>Dice Helper</b><button id="min" aria-label="Minimize">–</button></div>
+    <div class="panel" role="complementary" aria-label="Benchsale Dan Dice helper">
+      <div class="head"><b>Benchsale Dan · Dice Helper</b><button id="min" aria-label="Minimize">–</button></div>
       <div class="body" id="body"></div>
     </div>`;
   const body = shadow.getElementById("body");

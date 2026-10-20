@@ -1,4 +1,4 @@
-// Multi-Domain Resume Builder — relational data model (spec §12).
+// Benchsale Dan — relational data model (spec §12).
 // Candidate evidence, generic templates and immutable resume versions are kept separate.
 
 generator client {

@@ -1,4 +1,5 @@
 import { Flash } from "@/components/Flash";
+import { BrandName } from "@/components/Logo";
 import { completeReset, requestReset } from "./actions";
 
 export default async function ResetPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -6,6 +7,7 @@ export default async function ResetPage({ searchParams }: { searchParams: Promis
   return (
     <div className="login-wrap">
       <div className="card login-card">
+        <div style={{ marginBottom: 12 }}><BrandName /></div>
         <h1>Reset password</h1>
         <Flash searchParams={sp} />
         {sp.token ? (

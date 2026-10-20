@@ -12,7 +12,7 @@ export async function fetchDiceJob(url: string): Promise<JobPosting> {
     const res = await fetch(link.url, {
       redirect: "manual",
       signal: AbortSignal.timeout(12_000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; ResumeBuilder/1.0; job description reader)", Accept: "text/html" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; BenchsaleDan/1.0; job description reader)", Accept: "text/html" },
     });
     if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
       current = new URL(res.headers.get("location")!, link.url).toString();
