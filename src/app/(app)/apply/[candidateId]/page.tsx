@@ -4,7 +4,7 @@ import { Denied } from "@/components/Denied";
 import { Flash } from "@/components/Flash";
 import { SCREENING_QUESTIONS, missingRequired } from "@/data/screening";
 import { fmtDateTime } from "@/lib/format";
-import { answerCode, getProfile, report } from "@/lib/server/apply-service";
+import { answerCode, getProfile, pendingQuestions, report } from "@/lib/server/apply-service";
 import { CopyButton } from "@/components/CopyButton";
 import { bookmarkletHref } from "@/lib/server/bookmarklet";
 
@@ -14,7 +14,7 @@ function escapeHtml(s: string): string {
 import { requireUser } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
 import { AccessDenied, candidateWritable } from "@/lib/server/permissions";
-import { addDiceJobs, saveAnswers, updateStatus } from "../actions";
+import { addDiceJobs, answerPendingQuestions, saveAnswers, updateStatus } from "../actions";
 
 const GROUPS = ["Contact", "Eligibility", "Experience & pay", "Preferences", "Checks"] as const;
 
@@ -30,10 +30,11 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
     throw e;
   }
   const writable = candidateWritable(user, profile.candidate);
-  const [stats, resumes, jobs] = await Promise.all([
+  const [stats, resumes, jobs, pending] = await Promise.all([
     report(user, candidateId),
     prisma.resume.findMany({ where: { candidateId }, orderBy: { updatedAt: "desc" }, select: { id: true, title: true } }),
-    prisma.jobApplication.findMany({ where: { candidateId, ...(sp.status ? { status: sp.status as "READY" } : {}) }, orderBy: [{ createdAt: "desc" }], take: 500 }),
+    prisma.jobApplication.findMany({ where: { candidateId, ...(sp.status ? { status: sp.status as "READY" } : {}) }, orderBy: [{ updatedAt: "desc" }], take: 500 }),
+    pendingQuestions(user, candidateId),
   ]);
   const missing = missingRequired(profile.answers);
   const code = answerCode(profile.candidate.fullName, profile.answers, profile.custom);
@@ -44,7 +45,7 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
       <div className="pagehead">
         <div>
           <h1>Dice Apply — {profile.candidate.fullName}</h1>
-          <p>Answers are saved for every application. Paste Dice job links, then work through them one by one.</p>
+          <p>Save the answers once, then let the Dice Helper extension apply to matching Easy Apply jobs — or work through job links yourself.</p>
         </div>
         <div className="actions">
           <Link className="btn primary" href={`/apply/${candidateId}/session`} aria-disabled={stats.remaining === 0}>Start applying ({stats.remaining} left)</Link>
@@ -59,6 +60,32 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
         <div className="card"><div className="kpi-label">Skipped / closed</div><div className="kpi">{stats.skipped}</div></div>
         <div className="card"><div className="kpi-label">Avg. resume match</div><div className="kpi">{stats.avgCoverage === null ? "—" : `${stats.avgCoverage}%`}</div><div className="small muted">for submitted jobs</div></div>
       </div>
+
+      {writable && pending.length > 0 && (
+        <form action={answerPendingQuestions} className="card" id="pending">
+          <input type="hidden" name="candidateId" value={candidateId} />
+          <h2>Questions auto-apply could not answer</h2>
+          <p className="muted small">These required questions stopped some applications (they were skipped, never guessed). Answer them once; the next run retries those jobs. Leave a box empty to skip it.</p>
+          {pending.map((p, i) => (
+            <div className="row" key={i}>
+              <div style={{ flex: "2 1 320px" }}><label htmlFor={`pa${i}`}>{p.question} <span className="hint">({p.count} job{p.count > 1 ? "s" : ""})</span></label><input type="hidden" name="pq" value={p.question} /><input id={`pa${i}`} name="pa" type="text" placeholder="Your answer, e.g. Yes / No / 5" /></div>
+            </div>
+          ))}
+          <div className="actions" style={{ marginTop: 10 }}><button className="btn primary" type="submit">Save these answers</button></div>
+        </form>
+      )}
+
+      {writable && (
+        <section className="card" id="auto">
+          <h2>Auto-apply with the Dice Helper extension</h2>
+          <ol className="stack">
+            <li><a className="btn small" href="/api/extension">Download Dice Helper (.zip)</a> and unzip it. In Chrome open <code>chrome://extensions</code>, turn on <strong>Developer mode</strong>, click <strong>Load unpacked</strong> and choose the <code>dice-helper</code> folder. (Once.)</li>
+            <li>Log in to <a href="https://www.dice.com" target="_blank" rel="noopener noreferrer">dice.com</a> in the same Chrome. Make sure the resume on your Dice profile is the one to send.</li>
+            <li>Click the extension, <strong>sign in with your Benchsale Dan email and password</strong>, choose <strong>{profile.candidate.fullName}</strong>, check the search (their role is filled in) and press <strong>Start auto-apply</strong>.</li>
+          </ol>
+          <p className="small muted">It searches Dice for Easy Apply jobs, skips “Apply Now” (company website) jobs and jobs already done, fills each step with the answers below and presses Next / Submit. Results appear here as they happen. A required question with no saved answer is never guessed: that job is skipped and the question appears above for you to answer. Start with a small limit (e.g. 5) to check everything looks right. Applying in bulk may be limited by Dice&apos;s terms — use it responsibly and only for jobs that fit.</p>
+        </section>
+      )}
 
       {writable && (
         <form action={saveAnswers} className="card" id="answers">
@@ -122,7 +149,7 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
 
       {writable && (
         <section className="card" id="helper">
-          <h2>2. The “Fill Dice” button (nothing to install)</h2>
+          <h2>2. Or: the “Fill Dice” button (nothing to install)</h2>
           <p>This yellow button fills Dice application forms with the answers above, and collects job links from Dice search pages.</p>
           <div className="bookmark-steps">
             <div className="bstep"><span className="bnum">1</span><div><strong>Show the bookmarks bar</strong><br />Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> (on a Mac: <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd>).</div></div>
@@ -138,12 +165,7 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
           </div>
           <p className="hint">If you change any answers above, save them and drag the new button again (you can delete the old bookmark). Questions the button doesn&apos;t know get an orange box: answer those yourself.</p>
           <details style={{ marginTop: 8 }}>
-            <summary className="small">Advanced: Chrome extension instead of the button</summary>
-            <ol className="small stack">
-              <li><a className="btn small" href="/api/extension">Download Dice Helper (.zip)</a> and unzip it.</li>
-              <li>In Chrome open <code>chrome://extensions</code>, turn on <strong>Developer mode</strong>, click <strong>Load unpacked</strong> and choose the <code>dice-helper</code> folder.</li>
-              <li>Open the extension, paste the answer code below and click <strong>Save answers</strong>.</li>
-            </ol>
+            <summary className="small">Answer code (for older copies of the extension)</summary>
             <textarea id="answerCode" readOnly value={code} aria-label="Answer code" style={{ minHeight: 50, fontFamily: "ui-monospace, monospace", fontSize: 11 }} />
             <div className="actions" style={{ marginTop: 6 }}><CopyButton text={code} label="Copy answer code" /></div>
           </details>
@@ -192,6 +214,7 @@ export default async function ApplyCandidate({ params, searchParams }: { params:
                   <td>
                     <a href={j.jobUrl} target="_blank" rel="noopener noreferrer">{j.title ?? "Dice job"}</a>
                     <div className="muted">{[j.company, j.location].filter(Boolean).join(" · ") || j.jobUrl.replace("https://www.dice.com/job-detail/", "…/")}</div>
+                    {j.notes && j.status !== "READY" && <div className="muted small">{j.notes}</div>}
                   </td>
                   <td>{j.coverage === null ? "—" : `${j.coverage}%`}</td>
                   <td><StatusBadge value={j.status === "APPLIED" ? "SUCCEEDED" : j.status === "SKIPPED" || j.status === "NOT_AVAILABLE" ? "PROPOSED" : "IN_REVIEW"} /> {j.status.toLowerCase().replace("_", " ")}</td>

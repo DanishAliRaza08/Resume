@@ -16,7 +16,7 @@ employment, tools, credentials or outcomes.
 | Area | Highlights |
 | --- | --- |
 | **Accounts** | Anyone can sign up and start building resumes straight away. Each account only sees its own people, resumes and job descriptions. |
-| **Dice Apply** | Upload a candidate's resume; the app reads their details and asks only for the application answers it's missing (work authorization, sponsorship, salary and so on — never assumed "Yes"). Paste any number of Dice job links. For each job the app reads the posting (or takes a pasted description), tailors the resume using only real experience, and shows an answer sheet with copy buttons and ✔/✘ for yes/no boxes. Open the job on Dice in your own signed-in browser, submit it there, click "I submitted it — next job", and the app moves on. Duplicate links are skipped; the report shows submitted today/this week/total, plus a CSV export. The **⭐ Fill Dice** bookmark button (nothing to install: drag it to the bookmarks bar once) — or, for advanced users, the **Dice Helper** Chrome extension — does the in-browser work: on Dice search results it collects every job link page by page; on a job page it shows whether it is Easy Apply or an external "Apply Now"; on an application it fills text boxes, dropdowns, yes/no radios and tick boxes from the saved answers (including fields inside web components), optionally on every new step, and outlines unknown questions in orange. It never presses Next or Submit — the user does. |
+| **Dice Apply** | Save a person's application answers once (work authorization, sponsorship, salary and so on — never assumed "Yes"). **Auto-apply:** in the **Dice Helper** Chrome extension, sign in with your Benchsale Dan account, pick the person (their role, e.g. "Business Analyst", becomes the Dice search), set a limit and press **Start**. In your own logged-in Chrome it searches Dice for Easy Apply jobs, skips "Apply Now" (company website) jobs and jobs already done, clicks Easy apply, fills each step (text, dropdowns, yes/no, tick boxes) and presses Next/Submit. A required question without a saved answer is never guessed: the job is skipped and the question is listed on the Dice Apply page to answer once, after which the next run retries it. Every result (applied / needs answers / skipped / closed) appears in the app's report with totals for today, this week and overall, plus a CSV export. You can still work job by job (paste links, tailored resume per job, answer sheet) or use the **⭐ Fill Dice** bookmark (nothing to install), which fills forms but leaves Next/Submit to you. |
 | **Clients** | 646 built-in organizations across the five industries. Users pick one as they type (each shows its industry) or enter any other name. Nothing needs to be uploaded. |
 | **Create New Resume** (§5.1) | 5-step wizard: who it is for → target role → projects → design → review & generate. Client and company names are typed freely (with suggestions). It can also propose a default five-project timeline (P1 ≈ 2 yrs 3 mos, P2 2 yrs, P5 7 mos, P3/P4 share the rest). |
 | **Resume designs** | Seven designs: Classic, Modern, Executive, Minimal, Bold, Elegant and Compact. Each has a live thumbnail gallery, can be switched any time, and works for both PDF and Word downloads. All are single-column and ATS-readable. |
@@ -170,6 +170,10 @@ SEED_DEMO=true DATABASE_URL=mysql://…/resume_builder_test npm run db:seed
 | AT-12 Near-duplicate detection | `tests/validation-jd.test.ts` |
 | AT-13 Candidate deletion | `tests/integration.test.ts` and the candidate page's delete flow (removes export files, audited) |
 | AT-14 AI timeout, draft preserved, retry without duplicates | `tests/integration.test.ts` |
+
+End-to-end check of the extension's auto-apply against a stand-in Dice site (needs a running app
+with `SEED_DEMO=true` and the demo person's answers saved):
+`APP=http://127.0.0.1:3000 node tests/e2e-dice/run.cjs`
 
 ## Architecture
 

@@ -188,12 +188,61 @@ export function answerSheet(answers: Answers, custom: CustomAnswer[]) {
  * recognise each question on an application form. Only answered questions are included.
  */
 export function answerCode(candidateName: string, answers: Answers, custom: CustomAnswer[]): string {
-  const payload = {
+  return Buffer.from(JSON.stringify(answerPayload(candidateName, answers, custom)), "utf8").toString("base64");
+}
+
+export function answerPayload(candidateName: string, answers: Answers, custom: CustomAnswer[]) {
+  return {
     v: 1,
     candidate: candidateName,
     answers: SCREENING_QUESTIONS.filter((q) => (answers[q.key] ?? "").trim()).map((q) => ({ key: q.key, label: q.label, type: q.type, keywords: q.keywords, answer: answers[q.key].trim() })),
     custom: custom.filter((c) => c.question.trim() && c.answer.trim()),
   };
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
+}
+
+export type AutoOutcome = "APPLIED" | "SKIPPED" | "NOT_AVAILABLE" | "ALREADY_APPLIED" | "NEEDS_ANSWERS";
+
+/** Record one result from the extension's auto-apply run (never counts a job twice). */
+export async function recordAutoResult(
+  user: SessionUser,
+  candidateId: string,
+  r: { jobUrl: string; outcome: AutoOutcome; title?: string | null; company?: string | null; location?: string | null; reason?: string | null; questions?: string[] },
+) {
+  await authorizeCandidate(user, candidateId, "write");
+  const { links } = parseJobLinks(r.jobUrl, 1);
+  if (!links.length) throw new Error("Only Dice job links are accepted.");
+  const { key, url } = links[0];
+  const status = r.outcome === "APPLIED" ? "APPLIED" : r.outcome === "NOT_AVAILABLE" ? "NOT_AVAILABLE" : "SKIPPED";
+  const questions = (r.questions ?? []).map((q) => q.replace(/\s+/g, " ").trim().slice(0, 300)).filter(Boolean).slice(0, 15);
+  const notes =
+    r.outcome === "NEEDS_ANSWERS"
+      ? `Needs answers: ${questions.join(" | ") || "a required question"}`
+      : r.outcome === "ALREADY_APPLIED"
+        ? "Already applied on Dice earlier."
+        : [r.outcome === "APPLIED" ? "Auto-applied by the Dice Helper." : null, r.reason].filter(Boolean).join(" ");
+  const meta = { title: r.title?.slice(0, 300) || undefined, company: r.company?.slice(0, 300) || undefined, location: r.location?.slice(0, 300) || undefined };
+  const existing = await prisma.jobApplication.findUnique({ where: { candidateId_jobKey: { candidateId, jobKey: key } } });
+  if (existing?.status === "APPLIED") return existing; // never downgrade or double count
+  const data = { ...meta, status, notes: notes.slice(0, 2000) || null, ...(status === "APPLIED" ? { appliedAt: new Date() } : {}) } as const;
+  const app = existing
+    ? await prisma.jobApplication.update({ where: { id: existing.id }, data })
+    : await prisma.jobApplication.create({ data: { ownerId: user.id, candidateId, jobKey: key, jobUrl: url, source: "DICE", ...data } });
+  await audit(user.id, `apply.auto.${r.outcome.toLowerCase()}`, "JobApplication", app.id);
+  return app;
+}
+
+/** Questions that stopped auto-apply recently (most frequent first), so the user can answer them once. */
+export async function pendingQuestions(user: SessionUser, candidateId: string): Promise<{ question: string; count: number }[]> {
+  await authorizeCandidate(user, candidateId, "read");
+  const rows = await prisma.jobApplication.findMany({ where: { candidateId, status: "SKIPPED", notes: { startsWith: "Needs answers:" } }, select: { notes: true }, orderBy: { updatedAt: "desc" }, take: 300 });
+  const { custom } = await getProfile(user, candidateId);
+  const answered = new Set(custom.filter((c) => c.answer.trim()).map((c) => c.question.toLowerCase().trim()));
+  const counts = new Map<string, number>();
+  for (const r of rows)
+    for (const q of (r.notes ?? "").replace(/^Needs answers:\s*/, "").split(" | ").map((x) => x.trim()).filter(Boolean)) {
+      if (answered.has(q.toLowerCase())) continue;
+      counts.set(q, (counts.get(q) ?? 0) + 1);
+    }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([question, count]) => ({ question, count }));
 }
 

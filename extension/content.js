@@ -5,7 +5,7 @@
   if (window.__diceHelperLoaded) return;
   window.__diceHelperLoaded = true;
   const F = window.DiceFiller;
-  const state = { profile: null, autoFill: false, collected: [], minimized: false, message: null };
+  const state = { profile: null, autoFill: false, collected: [], minimized: false, message: null, run: null };
 
   const host = document.createElement("div");
   host.id = "resume-builder-dice-helper";
@@ -46,7 +46,17 @@
     const links = F.collectJobLinks(document);
     const kind = F.applyKind(document);
     const form = isApplicationForm();
-    const who = state.profile ? `Answers: <b>${escapeHtml(state.profile.candidate || "saved")}</b>` : `<span class="warn">No answers yet — open the extension and paste your answer code from the app.</span>`;
+    if (state.run && state.run.running) {
+      const r = state.run;
+      body.innerHTML = `
+        <div class="row"><b>Auto-applying for ${escapeHtml(r.candidateName || "")}</b></div>
+        <div class="row msg">“${escapeHtml(r.keyword)}” · <span class="ok">${r.applied || 0} applied</span> · <span class="warn">${r.needs || 0} need answers</span> · ${r.skipped || 0} skipped</div>
+        <div class="row msg">${escapeHtml((r.log || [])[0] || "Starting…")}</div>
+        <div class="row"><button class="sec" id="stoprun">Stop</button></div>`;
+      on("stoprun", () => chrome.runtime.sendMessage({ type: "stop" }));
+      return;
+    }
+    const who = state.profile ? `Answers: <b>${escapeHtml(state.profile.candidate || "saved")}</b>` : `<span class="warn">No answers yet — open the extension, sign in and pick a person.</span>`;
     body.innerHTML = `
       <div class="row msg">${who}</div>
       ${form ? `
@@ -90,7 +100,7 @@
 
   function fill(fromClick) {
     if (!state.profile) {
-      if (fromClick) render({ text: "Paste your answer code into the extension first.", cls: "warn" });
+      if (fromClick) render({ text: "Open the extension, sign in and pick a person first.", cls: "warn" });
       return;
     }
     const r = F.fillRoot(document, state.profile);
@@ -108,24 +118,26 @@
   new MutationObserver(() => {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (state.autoFill && isApplicationForm()) fill(false);
+      if (state.autoFill && !(state.run && state.run.running) && isApplicationForm()) fill(false);
       else if (!document.activeElement || !host.contains(document.activeElement)) render();
     }, 700);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
-  chrome.storage.local.get(["profile", "autoFill", "collected"], (r) => {
+  chrome.storage.local.get(["profile", "autoFill", "collected", "run"], (r) => {
     state.profile = r.profile || null;
+    state.run = r.run || null;
     state.autoFill = Boolean(r.autoFill);
     state.collected = r.collected || [];
     if (window.top === window) document.documentElement.appendChild(host);
     else if (isApplicationForm()) document.documentElement.appendChild(host); // application forms inside frames
     render();
-    if (state.autoFill && isApplicationForm()) fill(false);
+    if (state.autoFill && !(state.run && state.run.running) && isApplicationForm()) fill(false);
   });
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.profile) state.profile = changes.profile.newValue || null;
     if (changes.autoFill) state.autoFill = Boolean(changes.autoFill.newValue);
     if (changes.collected) state.collected = changes.collected.newValue || [];
+    if (changes.run) state.run = changes.run.newValue || null;
     render();
   });
 })();

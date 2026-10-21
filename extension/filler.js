@@ -146,10 +146,30 @@
    * Fill empty fields under `root`. Returns { filled, needsYou: [questions] }.
    * Never clicks buttons; never checks a box unless the saved answer is "Yes".
    */
+  /** Whether a field must be answered before the form can continue. */
+  function isRequired(el) {
+    if (el.required || el.getAttribute("aria-required") === "true") return true;
+    const group = el.closest("fieldset, [role=radiogroup], [role=group]");
+    if (group && (group.getAttribute("aria-required") === "true" || group.querySelector("[required], [aria-required=true]"))) return true;
+    // An asterisk or "(required)" in the field's own label (not anywhere on the page).
+    const own = [];
+    if (el.getAttribute("aria-label")) own.push(el.getAttribute("aria-label"));
+    const root = el.getRootNode();
+    if (el.id && root.querySelector) {
+      const lab = root.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+      if (lab) own.push(lab.textContent);
+    }
+    if (el.type !== "radio" && el.type !== "checkbox" && el.closest("label")) own.push(el.closest("label").textContent);
+    const legend = group && group.querySelector("legend");
+    if (legend) own.push(legend.textContent);
+    return own.some((t) => /\*|\(required\)/i.test(t || ""));
+  }
+
   function fillRoot(root, profile) {
-    const result = { filled: 0, needsYou: [] };
+    const result = { filled: 0, needsYou: [], required: [] };
     const needs = (q, el) => {
       if (q && !result.needsYou.includes(q)) result.needsYou.push(q);
+      if (el && isRequired(el) && !result.required.includes(q || "(unlabeled question)")) result.required.push(q || "(unlabeled question)");
       if (el) mark(el, false);
     };
 
@@ -252,5 +272,5 @@
     return null;
   }
 
-  global.DiceFiller = { deepAll, labelFor, groupQuestion, findAnswer, fillRoot, collectJobLinks, applyKind };
+  global.DiceFiller = { deepAll, labelFor, groupQuestion, findAnswer, fillRoot, collectJobLinks, applyKind, isRequired, visible, clean };
 })(typeof window !== "undefined" ? window : globalThis);

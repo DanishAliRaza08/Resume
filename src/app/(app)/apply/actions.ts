@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { SCREENING_QUESTIONS } from "@/data/screening";
 import { extractText } from "@/lib/files";
 import { parseResumeText } from "@/lib/resume-parser";
-import { addJobs, prepareJob, saveProfile, setStatus } from "@/lib/server/apply-service";
+import { addJobs, getProfile, prepareJob, saveProfile, setStatus } from "@/lib/server/apply-service";
 import { requireUser } from "@/lib/server/auth";
 import { loadCatalog } from "@/lib/server/catalog";
 import { attempt, str, withMessage } from "@/lib/server/forms";
@@ -76,3 +76,21 @@ export async function provideDescription(form: FormData) {
   redirect(`/apply/${candidateId}/session?id=${id}`);
 }
 
+
+/** Answer the questions that stopped auto-apply; they are added to "Other questions". */
+export async function answerPendingQuestions(form: FormData) {
+  const user = await requireUser();
+  const candidateId = str(form, "candidateId");
+  let added = 0;
+  await attempt(`/apply/${candidateId}#pending`, async () => {
+    const { answers, custom, baseResumeId } = await getProfile(user, candidateId);
+    const qs = form.getAll("pq").map(String);
+    const as = form.getAll("pa").map((a) => String(a).trim());
+    const fresh = qs.map((question, i) => ({ question, answer: as[i] ?? "" })).filter((c) => c.question && c.answer);
+    added = fresh.length;
+    if (!added) throw new Error("Type at least one answer.");
+    const merged = [...custom.filter((c) => !fresh.some((f) => f.question.toLowerCase() === c.question.toLowerCase())), ...fresh];
+    await saveProfile(user, candidateId, answers, merged, baseResumeId);
+  });
+  redirect(withMessage(`/apply/${candidateId}#pending`, "ok", `${added} answer(s) saved. Start auto-apply again: those jobs are retried.`));
+}

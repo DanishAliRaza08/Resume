@@ -146,5 +146,26 @@ suite("service acceptance tests (database)", () => {
     await expect(apply.setStatus(creator2, job.id, "READY")).rejects.toThrow(perms.AccessDenied);
     await expect(apply.addJobs(creator2, candidateId, links)).rejects.toThrow(perms.AccessDenied);
   });
+
+  it("Dice auto-apply: records results once, lists unanswered questions, retries them after answering", async () => {
+    const apply = await import("@/lib/server/apply-service");
+    const [a, b, c] = Array.from({ length: 3 }, () => `https://www.dice.com/job-detail/${randomUUID()}`);
+    const question = `Do you hold an active Series 7 license? (${randomUUID().slice(0, 8)})`;
+    const before = (await apply.report(creator, candidateId)).applied;
+    await apply.recordAutoResult(creator, candidateId, { jobUrl: a, outcome: "APPLIED", title: "Senior BA", company: "Acme" });
+    await apply.recordAutoResult(creator, candidateId, { jobUrl: a, outcome: "SKIPPED", reason: "late duplicate" }); // never downgrades
+    await apply.recordAutoResult(creator, candidateId, { jobUrl: b, outcome: "NEEDS_ANSWERS", questions: [question] });
+    await apply.recordAutoResult(creator, candidateId, { jobUrl: c, outcome: "SKIPPED", reason: "Apply Now (company website)" });
+    expect((await apply.report(creator, candidateId)).applied).toBe(before + 1);
+    expect((await prisma.jobApplication.findFirstOrThrow({ where: { candidateId, jobUrl: a } })).status).toBe("APPLIED");
+    const pending = await apply.pendingQuestions(creator, candidateId);
+    expect(pending.map((p) => p.question)).toContain(question);
+    // Once answered, the question is no longer listed.
+    const prof = await apply.getProfile(creator, candidateId);
+    await apply.saveProfile(creator, candidateId, prof.answers, [...prof.custom, { question, answer: "No" }], prof.baseResumeId);
+    expect((await apply.pendingQuestions(creator, candidateId)).map((p) => p.question)).not.toContain(question);
+    await expect(apply.recordAutoResult(creator2, candidateId, { jobUrl: a, outcome: "APPLIED" })).rejects.toThrow(perms.AccessDenied);
+    await expect(apply.recordAutoResult(creator, candidateId, { jobUrl: "https://example.com/x", outcome: "APPLIED" })).rejects.toThrow();
+  });
 });
 
