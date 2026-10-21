@@ -35,6 +35,30 @@ administrator access, which adds reports, user management, settings, the audit t
 the shared template, technology and client libraries. Reviewer and read-only roles still exist for
 teams that want them; an administrator assigns them.
 
+### Creating a resume
+1. **Person**: pick someone or enter a new name.
+2. **Role & experience**: industry, role, title, **total years of experience** and **how many
+   projects** (1–8).
+3. **Projects**: all project cards on one screen, dates pre-filled so they add up to the years
+   entered. The client list shows companies from that card's industry only. Technologies have
+   **Select all** per group, a search box, and an **Other technologies** box for anything not listed.
+   One **Save** button.
+4. **Design**, then 5. **Generate**. On the resume page, **Download resume** asks PDF or Word.
+
+Resumes use narrow (0.5 in) margins and justified bullet text.
+
+### Technology knowledge base
+About 240 technologies, each with a description and senior-level wording per role
+(`src/data/tech-knowledge`, loaded into the `Technology` table). The writer uses the wording for
+the tools chosen on each project first. `npx tsx scripts/check-knowledge.ts` checks that every line
+names only its own tool, has no invented numbers and stays a sensible length.
+
+### Resume library
+Resumes uploaded in **Tailor Existing Resume** can be saved to the **Resume Library** (on by
+default). Names, contact details, company names and any line with numbers are removed. New resumes
+for the same industry and role may suggest these lines, but only when every tool a line mentions
+was chosen for that project, and always marked "needs confirmation".
+
 ## Quick start (local)
 
 Requirements: Node 20+ and MySQL 8+ or MariaDB 10.6+. LibreOffice is optional; it gives exact page counts for Word downloads.

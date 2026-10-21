@@ -2,7 +2,7 @@ import { strs } from "@/lib/json";
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { Flash } from "@/components/Flash";
-import { ClientSuggestions, ProjectForm } from "@/components/ProjectForm";
+import { ProjectsEditor, type EditorProject } from "@/components/ProjectsEditor";
 import { StatusBadge } from "@/components/Badges";
 import { DOMAINS, ROLES, SENIORITY_LEVELS } from "@/data/domains";
 import { getDesign } from "@/lib/designs";
@@ -11,14 +11,14 @@ import { aiConfigured } from "@/lib/server/ai";
 import { requireUser } from "@/lib/server/auth";
 import { getSettings } from "@/lib/server/catalog";
 import { prisma } from "@/lib/server/db";
-import { clientNameOptions, techOptions, templateOptions } from "@/lib/server/lookups";
+import { clientsByDomain, techOptions, templateOptions } from "@/lib/server/lookups";
 import { authorizeCandidate, candidateScope } from "@/lib/server/permissions";
-import { analyzeTimeline, formatDuration, toDate, totalExperienceMonths } from "@/lib/timeline";
+import { analyzeTimeline, formatDuration, suggestProjectDates, toDate, totalExperienceMonths } from "@/lib/timeline";
 import { createCandidate } from "../../candidates/actions";
 import { DesignPicker } from "@/components/DesignPicker";
 import { generate } from "./actions";
 
-const STEPS = ["Candidate", "Target role", "Projects", "Format", "Review & generate"];
+const STEPS = ["Person", "Role & experience", "Projects", "Design", "Generate"];
 
 export default async function NewResumeWizard({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser(["ADMIN", "CREATOR"]);
@@ -31,6 +31,8 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
     roleKey: sp.roleKey ?? "",
     seniority: sp.seniority ?? "Senior",
     targetTitle: sp.targetTitle ?? "",
+    years: sp.years ?? "",
+    count: sp.count ?? "5",
     mode: sp.mode ?? settings.defaultProjectMode,
     pageTarget: sp.pageTarget ?? String(settings.defaultPageTarget),
     templateKey: sp.templateKey ?? "classic",
@@ -47,7 +49,7 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
 
   return (
     <>
-      <div className="pagehead"><div><h1>Create new resume</h1><p>Five quick steps: who it is for, target role, projects, design, generate.</p></div></div>
+      <div className="pagehead"><div><h1>Create new resume</h1><p>Five quick steps: who it is for, role and experience, projects, design, generate.</p></div></div>
       <ol className="steps" aria-label="Wizard progress">
         {STEPS.map((s, i) => (
           <li key={s} aria-current={effectiveStep === i + 1 ? "step" : undefined} className={effectiveStep > i + 1 ? "done" : undefined}>{i + 1}. {s}</li>
@@ -57,7 +59,7 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
       {effectiveStep === 1 && <StepCandidate userScope={candidateScope(user)} />}
       {candidate && effectiveStep === 2 && (
         <form className="card" action="/resumes/new" method="get">
-          <Hidden omit={["domainKey", "roleKey", "seniority", "targetTitle"]} />
+          <Hidden omit={["domainKey", "roleKey", "seniority", "targetTitle", "years", "count"]} />
           <input type="hidden" name="step" value="3" />
           <h2>Target role for {candidate.fullName}</h2>
           <div className="row">
@@ -81,7 +83,20 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
             </div>
           </div>
           <label htmlFor="targetTitle">Target job title <span className="hint">(shown under the name)</span></label>
-          <input id="targetTitle" name="targetTitle" type="text" defaultValue={state.targetTitle || candidate.targetTitle || ""} />
+          <input id="targetTitle" name="targetTitle" type="text" defaultValue={state.targetTitle || candidate.targetTitle || ""} placeholder="e.g. Senior Business Analyst" />
+          <div className="row">
+            <div>
+              <label htmlFor="years">Total years of experience *</label>
+              <input id="years" name="years" type="number" min={1} max={45} step={0.5} required defaultValue={state.years} placeholder="e.g. 10" />
+            </div>
+            <div>
+              <label htmlFor="count">How many projects? *</label>
+              <select id="count" name="count" defaultValue={state.count}>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} project{n > 1 ? "s" : ""}</option>)}
+              </select>
+            </div>
+          </div>
+          <p className="hint">The project dates on the next screen are filled in from these, so the resume adds up to the years you enter. You can change any date.</p>
           <div className="actions" style={{ marginTop: 16 }}>
             <Link className="btn" href={qs({ step: 1 })}>Back</Link>
             <button className="btn primary" type="submit">Next: projects</button>
@@ -145,9 +160,12 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
       if (unconfirmed.length) issues.push({ severity: "warning", message: `Project ${p.position}: ${unconfirmed.length} technologies not confirmed; they will be excluded.` });
       if (p.templateId && p.template && p.domainKey !== state.domainKey) issues.push({ severity: "info", message: `Project ${p.position} is in ${p.domainKey}, different from the target domain.` });
     }
-    if (c.projects.length > 0 && c.projects.length !== 5) issues.push({ severity: "info", message: `${c.projects.length} project(s) configured; the standard format uses five. Never pad with invented projects.` });
+    const statedYears = Number(state.years) || 0;
     const intervals = c.employments.map((e) => ({ start: toDate(e.startDate), end: e.endDate ? toDate(e.endDate) : null, label: e.employer }));
     for (const w of analyzeTimeline(intervals)) issues.push({ severity: w.severity, message: w.message });
+    const verifiedYears = totalExperienceMonths(intervals) / 12;
+    if (statedYears && Math.abs(verifiedYears - statedYears) >= 1)
+      issues.push({ severity: "warning", message: `You said ${statedYears} years of experience, but the project dates add up to ${formatDuration(totalExperienceMonths(intervals))}. The resume uses the project dates — adjust them in step 3 if needed.` });
     const blocking = issues.some((i) => i.severity === "critical" && /domain|No projects/.test(i.message));
     const idempotencyKey = randomUUID();
     return (
@@ -164,7 +182,7 @@ export default async function NewResumeWizard({ searchParams }: { searchParams: 
           {c.projects.map((p, i) => (
             <li key={p.id}>
               <label className="check">
-                <input type="checkbox" name="projectId" value={p.id} defaultChecked={i < 5} />
+                <input type="checkbox" name="projectId" value={p.id} defaultChecked={i < 10} />
                 <span>
                   <strong>P{p.position}</strong> {p.title} — {p.employment?.employer ?? <em>no employer</em>} ({fmtDate(p.startDate)} → {p.endDate ? fmtDate(p.endDate) : "current"}) · {p.technologies.filter((t) => t.confirmed).length} confirmed tools{p.template ? ` · ${p.template.name}` : ""}
                 </span>
@@ -225,38 +243,62 @@ async function StepCandidate({ userScope }: { userScope: object }) {
 }
 
 async function StepProjects({ candidateId, state, qs }: { candidateId: string; state: Record<string, string>; qs: (p: Record<string, string | number>) => string }) {
-  const [c, techs, templates, clientNames] = await Promise.all([
-    prisma.candidate.findUniqueOrThrow({ where: { id: candidateId }, include: { employments: { orderBy: { startDate: "desc" } }, projects: { include: { technologies: true }, orderBy: { position: "asc" } } } }),
+  const [c, techs, templates, clients] = await Promise.all([
+    prisma.candidate.findUniqueOrThrow({ where: { id: candidateId }, include: { projects: { include: { technologies: true, employment: true }, orderBy: [{ position: "asc" }, { startDate: "desc" }] } } }),
     techOptions(),
     templateOptions(),
-    clientNameOptions(candidateId),
+    clientsByDomain(candidateId),
   ]);
-  const back = qs({ step: 3 });
-  const { proposeProjects } = await import("../../candidates/actions");
+  const { saveAllProjects } = await import("../../candidates/actions");
+  const count = Math.min(10, Math.max(1, Number(state.count) || 5));
+  const years = Number(state.years) || 0;
+  const dates = years > 0 ? suggestProjectDates(years, Math.max(count, c.projects.length)) : [];
+  const role = ROLES.find((r) => r.key === state.roleKey);
+  const defaultRole = state.targetTitle || [state.seniority !== "Mid-level" ? state.seniority : "", role?.name ?? ""].filter(Boolean).join(" ");
+  const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+  const initial: EditorProject[] = c.projects.map((p) => ({
+    id: p.id,
+    title: p.title === p.role ? "" : p.title,
+    role: p.role,
+    client: p.employment?.employer ?? "",
+    location: p.employment?.location ?? "",
+    startDate: iso(p.startDate),
+    endDate: iso(p.endDate),
+    domainKey: p.domainKey,
+    subdomain: p.subdomain ?? "",
+    templateId: p.templateId ?? "",
+    responsibilities: strs(p.responsibilities).join("\n"),
+    outcomes: strs(p.outcomes).join("\n"),
+    techIds: p.technologies.map((t) => t.technologyId),
+    confirmed: p.clientConfirmed || p.technologies.some((t) => t.confirmed),
+  }));
+  for (let i = initial.length; i < count; i++) {
+    initial.push({
+      title: "", role: defaultRole, client: "", location: "",
+      startDate: dates[i]?.start ?? "", endDate: dates[i]?.end ?? "",
+      domainKey: state.domainKey || "BANKING", subdomain: "", templateId: "",
+      responsibilities: "", outcomes: "", techIds: [], confirmed: true,
+    });
+  }
+  const hidden = Object.fromEntries(Object.entries(state).filter(([k]) => k !== "count"));
   return (
     <>
       <div className="card">
-        <h2>Five-project configuration</h2>
-        <ClientSuggestions names={clientNames} />
-        <p className="muted">Add up to five projects. Type any client or company name, pick dates, a template for wording ideas, and the tools used. Each card saves on its own.</p>
-        {c.projects.length === 0 && c.employments.length > 0 && (
-          <form action={proposeProjects} className="row">
-            <input type="hidden" name="candidateId" value={candidateId} />
-            <input type="hidden" name="returnTo" value={back} />
-            <input type="hidden" name="domainKey" value={state.domainKey} />
-            <div><p>Propose five project shells from the default timeline (P1 2 yrs 3 mos, P2 2 yrs, P5 7 mos; P3/P4 share the rest).</p></div>
-            <div className="shrink"><button className="btn" type="submit">Propose five projects</button></div>
-          </form>
-        )}
+        <h2 style={{ marginTop: 0 }}>{initial.length} project{initial.length > 1 ? "s" : ""}{years ? ` · ${years} years of experience` : ""}</h2>
+        <p className="muted">Project 1 is the most recent. Pick the client, check the dates, tick the technologies used, then press <strong>Save</strong> at the bottom. Empty cards are skipped.</p>
       </div>
-      {c.projects.map((p) => (
-        <ProjectForm key={p.id} candidateId={candidateId} project={p} position={p.position} employments={c.employments} templates={templates} techs={techs} returnTo={`${back}#project-${p.id}`} />
-      ))}
-      {c.projects.length < 5 && <ProjectForm candidateId={candidateId} position={c.projects.length + 1} employments={c.employments} templates={templates} techs={techs} returnTo={back} defaultDomain={state.domainKey} />}
-      <div className="actions">
-        <Link className="btn" href={qs({ step: 2 })}>Back</Link>
-        <Link className="btn primary" href={qs({ step: 4 })}>Next: format</Link>
-      </div>
+      <ProjectsEditor
+        action={saveAllProjects}
+        hidden={hidden}
+        initial={initial}
+        techs={techs}
+        templates={templates}
+        domains={DOMAINS.map((d) => ({ key: d.key, name: d.name, subdomains: d.subdomains }))}
+        clients={clients.byDomain}
+        ownClients={clients.own}
+        priorityCategories={["Domain Platforms", ...(role?.skillCategories ?? []).filter((x) => x !== "Domain Knowledge")]}
+        backHref={qs({ step: 2 })}
+      />
     </>
   );
 }

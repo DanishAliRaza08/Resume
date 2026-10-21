@@ -59,6 +59,10 @@ export interface GenerationInput {
   asOf?: Date;
   /** When provided, template text that mentions an unconfirmed catalog technology is skipped. */
   catalog?: Catalog;
+  /** Knowledge base: senior-level phrasing per technology (canonical name) and role key. */
+  techKnowledge?: Record<string, Partial<Record<string, string[]>>>;
+  /** Phrasing learned from previously uploaded resumes for this domain and role. */
+  libraryBullets?: string[];
 }
 
 export interface GenerationWarning {
@@ -239,9 +243,50 @@ function buildProject(p: GenProject, input: GenerationInput, ctx: Ctx): ProjectS
       message: `Project ${p.position} has ${facts.length} candidate-supplied bullets, more than the ${input.mode} target of ${counts.project}. All were kept; trim manually if needed.`,
     });
   }
+  let projectCount = facts.length;
+  // 2b) Focused bullets for the technologies selected on this project (knowledge base), then
+  //     phrasing learned from uploaded resumes that names this project's tools. Both need confirmation.
+  for (const k of knowledgeBullets(p, input)) {
+    if (projectCount >= counts.project) break;
+    const filled = fillPattern(k.pattern, vars);
+    if (!filled || isDuplicate(filled.text, ctx) || !mentionsOnlyConfirmed(filled.text, ctx)) continue;
+    push(
+      makeBullet(
+        {
+          text: filled.text,
+          section: "PROJECT",
+          projectId: p.id,
+          type: "PROJECT",
+          source: "TEMPLATE",
+          technologyRefs: [k.tech],
+          evidenceRefs: [`knowledge:${k.tech}`, `tech:${k.tech}`],
+          requiresConfirmation: true,
+          confidence: "medium",
+        },
+        seed + "kb" + k.pattern,
+      ),
+    );
+    projectCount++;
+  }
+  let fromLibrary = 0;
+  if (ctx.catalog) {
+    const projectTechs = new Set(p.technologies.filter((t) => t.confirmed).map((t) => t.name));
+    for (const text of input.libraryBullets ?? []) {
+      if (projectCount >= counts.project || fromLibrary >= 2) break;
+      const named = ctx.catalog.find(text).map((f) => f.entry.canonicalName);
+      if (!named.some((n) => projectTechs.has(n)) || !named.every((n) => projectTechs.has(n)) || isDuplicate(text, ctx)) continue;
+      push(
+        makeBullet(
+          { text, section: "PROJECT", projectId: p.id, type: "PROJECT", source: "TEMPLATE", technologyRefs: named, evidenceRefs: ["library:uploaded-resumes"], requiresConfirmation: true, confidence: "low" },
+          seed + "lib" + text,
+        ),
+      );
+      projectCount++;
+      fromLibrary++;
+    }
+  }
   const rolePatterns = ROLE_PROJECT_BULLETS[input.role.key];
   const projectPatterns = rolePatterns ? [...rolePatterns, ...(p.template?.projectBullets ?? [])] : p.template?.projectBullets ?? [];
-  let projectCount = facts.length;
   for (const pattern of projectPatterns) {
     if (projectCount >= counts.project) break;
     const filled = fillPattern(pattern, vars);
@@ -338,6 +383,30 @@ function buildProject(p: GenProject, input: GenerationInput, ctx: Ctx): ProjectS
     technologies: p.technologies.filter((t) => t.confirmed).map((t) => t.name),
     bullets,
   };
+}
+
+/**
+ * Knowledge-base phrasing for this project's confirmed technologies, interleaved so each tool gets
+ * a turn: industry platforms first, then the role's own skill categories. Different projects start
+ * at different phrasings so the same tool reads differently across projects.
+ */
+function knowledgeBullets(p: GenProject, input: GenerationInput): { tech: string; pattern: string }[] {
+  const kb = input.techKnowledge;
+  if (!kb) return [];
+  const order = ["Domain Platforms", ...input.role.skillCategories];
+  const rank = (c: string) => (order.includes(c) ? order.indexOf(c) : order.length);
+  const techs = p.technologies
+    .filter((t) => t.confirmed && kb[t.name]?.[input.role.key]?.length)
+    .sort((a, b) => rank(a.category) - rank(b.category));
+  const out: { tech: string; pattern: string }[] = [];
+  for (let round = 0; round < 3; round++) {
+    for (const t of techs) {
+      const list = kb[t.name]![input.role.key]!;
+      if (round >= list.length) continue;
+      out.push({ tech: t.name, pattern: list[(round + p.position) % list.length] });
+    }
+  }
+  return out;
 }
 
 function buildSummary(input: GenerationInput, projects: ProjectSection[], allTechs: GenTech[], months: number, ctx: Ctx): Bullet[] {
@@ -498,13 +567,6 @@ export function generateResume(input: GenerationInput): GenerationResult {
   const asOf = input.asOf;
   const months = totalExperienceMonths(input.employments, asOf);
   const sorted = [...input.projects].sort((a, b) => a.position - b.position);
-  if (sorted.length !== 5) {
-    ctx.warnings.push({
-      code: "PROJECT_COUNT",
-      severity: "info",
-      message: `${sorted.length} project(s) configured; the standard format uses five. Use only real projects.`,
-    });
-  }
   for (const p of sorted) {
     const unconfirmed = p.technologies.filter((t) => !t.confirmed).map((t) => t.name);
     if (unconfirmed.length) {

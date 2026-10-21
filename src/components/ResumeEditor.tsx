@@ -189,7 +189,7 @@ export function ResumeEditor({
       </section>
 
       {!readOnly && (
-        <div className="card" style={{ position: "sticky", bottom: 0, zIndex: 2 }}>
+        <div className="card sticky-save editor-save">
           <div className="row">
             <div><label htmlFor="changeNote">Change note</label><input id="changeNote" name="changeNote" type="text" placeholder="What changed and why" /></div>
             <div className="shrink"><button className="btn primary" type="submit" disabled={!dirty}>Save as new version</button></div>

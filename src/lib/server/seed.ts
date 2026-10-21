@@ -10,6 +10,7 @@ import { CLIENTS } from "../../data/clients";
 import { EXTENDED_CLIENTS } from "../../data/clients-extended";
 import { DEMO_CANDIDATE, DEMO_CLIENTS } from "../../data/demo";
 import { DOMAINS, ROLES } from "../../data/domains";
+import { TECH_KNOWLEDGE } from "../../data/tech-knowledge";
 import { TECHNOLOGIES } from "../../data/technologies";
 import { TEMPLATES } from "../../data/templates";
 import { hashPassword } from "./passwords";
@@ -41,8 +42,11 @@ export async function seedDatabase(prisma: PrismaClient) {
   }
   for (const t of TECHNOLOGIES) {
     const data = { aliases: t.aliases, category: t.category, roles: t.roles, domains: t.domains, projectTypes: t.projectTypes, availableFrom: t.availableFrom ?? null };
-    // Insert-only so administrator edits survive restarts (the seed runs on every production start).
-    await prisma.technology.upsert({ where: { canonicalName: t.canonicalName }, create: { canonicalName: t.canonicalName, ...data }, update: {} });
+    const k = TECH_KNOWLEDGE[t.canonicalName];
+    const knowledge = k ? { description: k.description, knowledge: k.bullets } : {};
+    // Catalog fields are insert-only so administrator edits survive restarts (the seed runs on every
+    // production start); the knowledge base is refreshed so new phrasing ships with updates.
+    await prisma.technology.upsert({ where: { canonicalName: t.canonicalName }, create: { canonicalName: t.canonicalName, ...data, ...knowledge }, update: knowledge });
   }
   const domainIds = new Map((await prisma.domain.findMany()).map((d) => [d.key, d.id]));
   for (const t of TEMPLATES) {

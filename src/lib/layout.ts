@@ -4,10 +4,11 @@
 import { MODE_COUNTS } from "./generator";
 import type { Bullet, ResumeContent } from "./resume-schema";
 
+// Calibrated for 0.5 in ("Narrow") margins on US Letter.
 export const LAYOUT = {
-  charsPerBulletLine: 92,
-  charsPerLine: 100,
-  linesPerPage: 50,
+  charsPerBulletLine: 98,
+  charsPerLine: 106,
+  linesPerPage: 53,
 };
 
 export function estimateLines(content: ResumeContent, spacing: "normal" | "compact" = "normal"): number {

@@ -2,7 +2,9 @@
 import { redirect } from "next/navigation";
 import { extractText } from "@/lib/files";
 import { parseResumeText } from "@/lib/resume-parser";
+import { buildLibrarySample } from "@/lib/resume-library";
 import { requireUser } from "@/lib/server/auth";
+import { prisma } from "@/lib/server/db";
 import { loadCatalog } from "@/lib/server/catalog";
 import { attempt, str, withMessage } from "@/lib/server/forms";
 import { createJobDescription, importParsedResume, matchVersion } from "@/lib/server/jd-service";
@@ -28,6 +30,18 @@ export async function importAndTailor(form: FormData) {
       pageTarget: Number(str(form, "pageTarget") || "4"),
     });
     const notes = [...extracted.warnings, ...parsed.warnings];
+    let learned = 0;
+    if (form.get("saveToLibrary") === "on") {
+      // Keep an anonymous copy of the phrasing so future resumes in this industry/role can learn from it.
+      const clients = await prisma.client.findMany({ select: { name: true } });
+      const sample = buildLibrarySample(parsed, { fullName, knownClientNames: clients.map((c) => c.name) });
+      if (sample.bullets.length) {
+        await prisma.resumeSample.create({
+          data: { domainKey: str(form, "domainKey"), roleKey: str(form, "roleKey"), sourceName: file.name.slice(0, 255), text: sample.text, bullets: sample.bullets, bulletCount: sample.bullets.length, createdById: user.id },
+        });
+        learned = sample.bullets.length;
+      }
+    }
     const jdFile = form.get("jdFile");
     const jdText = str(form, "jdText");
     let jdId: string | null = null;
@@ -44,7 +58,7 @@ export async function importAndTailor(form: FormData) {
     } else {
       target = `/resumes/${resume.id}?v=${version.id}`;
     }
-    const summary = `Imported ${parsed.experiences.length} role(s), ${parsed.summary.length} summary bullet(s), ${parsed.detectedTechs.length} technologies.`;
+    const summary = `Imported ${parsed.experiences.length} role(s), ${parsed.summary.length} summary bullet(s), ${parsed.detectedTechs.length} technologies.${learned ? ` Saved ${learned} bullet(s) to the resume library.` : ""}`;
     target = withMessage(target, notes.length ? "error" : "ok", notes.length ? `${summary} Please review: ${notes.join(" ")}` : summary);
   });
   redirect(target);

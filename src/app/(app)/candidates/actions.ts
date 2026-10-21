@@ -296,3 +296,111 @@ export async function proposeProjects(form: FormData) {
   });
   redirect(withMessage(back, "ok", message));
 }
+
+/** Resolve "Other technologies" text to catalog entries, adding unknown names to the catalog. */
+async function resolveCustomTechs(raw: string): Promise<string[]> {
+  const names = [...new Set(raw.split(/[,;\n]/).map((s) => s.replace(/\s+/g, " ").trim()).filter((s) => s.length >= 1 && s.length <= 60))].slice(0, 25);
+  if (!names.length) return [];
+  const { loadCatalog } = await import("@/lib/server/catalog");
+  const { catalog } = await loadCatalog();
+  const ids: string[] = [];
+  for (const name of names) {
+    const known = catalog.resolve(name);
+    if (known?.id) {
+      ids.push(known.id);
+      continue;
+    }
+    const clean = name.replace(/[<>{}\[\]`]/g, "");
+    if (!clean) continue;
+    const existing = await prisma.technology.findUnique({ where: { canonicalName: clean } });
+    const tech = existing ?? (await prisma.technology.create({ data: { canonicalName: clean, category: "Other", aliases: [], roles: [], domains: [], projectTypes: [], description: "Added by a user from a project." } }));
+    ids.push(tech.id);
+  }
+  const { invalidateCatalog } = await import("@/lib/server/catalog");
+  invalidateCatalog();
+  return ids;
+}
+
+/** Save every project card from the wizard's projects screen in one go. */
+export async function saveAllProjects(form: FormData) {
+  const user = await requireUser();
+  const candidateId = str(form, "candidateId");
+  const keep = ["candidateId", "domainKey", "roleKey", "seniority", "targetTitle", "years", "count", "mode", "pageTarget", "templateKey", "includeHighlights", "useAi"];
+  const state = new URLSearchParams(keep.map((k) => [k, str(form, k)] as [string, string]));
+  const back = `/resumes/new?${state.toString()}&step=3`;
+  const problems: string[] = [];
+  let saved = 0;
+  await attempt(back, async () => {
+    await authorizeCandidate(user, candidateId, "write");
+    const count = Math.min(10, Math.max(0, Number(str(form, "count")) || 0));
+    const templates = await prisma.projectTemplate.findMany({ where: { status: "ACTIVE" }, select: { id: true, subdomain: true, domain: { select: { key: true } } } });
+    let position = 0;
+    for (let i = 0; i < count; i++) {
+      const g = (k: string) => `p${i}_${k}`;
+      const label = `Project ${i + 1}`;
+      const projectId = optStr(form, g("projectId"));
+      if (projectId && form.get(g("remove")) === "on") {
+        await prisma.project.deleteMany({ where: { id: projectId, candidateId } });
+        await audit(user.id, "project.delete", "Project", projectId);
+        continue;
+      }
+      const clientName = str(form, g("client")).slice(0, 150);
+      const techIds = form.getAll(g("techId")).map(String);
+      const custom = str(form, g("customTech"));
+      const responsibilities = lines(form, g("responsibilities"));
+      if (!clientName && !projectId && !techIds.length && !custom && !responsibilities.length) continue; // empty card
+      try {
+        if (!clientName) throw new Error("enter the client or company name");
+        const start = date(form, g("startDate"));
+        if (!start) throw new Error("enter the start date");
+        const end = date(form, g("endDate"));
+        if (end && end < start) throw new Error("the end date is before the start date");
+        const role = str(form, g("role")).slice(0, 120) || str(form, "targetTitle") || "Consultant";
+        const domainKey = str(form, g("domainKey")) || str(form, "domainKey") || "BANKING";
+        const subdomain = optStr(form, g("subdomain"));
+        const confirmed = form.get(g("confirmed")) === "on";
+        const employment = await upsertEmploymentFor(candidateId, { employer: clientName, location: optStr(form, g("location")), title: role, start, end });
+        const templateId =
+          optStr(form, g("templateId")) ??
+          (subdomain ? templates.find((t) => t.domain.key === domainKey && t.subdomain.toLowerCase() === subdomain.toLowerCase())?.id ?? null : null);
+        position++;
+        const data = {
+          candidateId,
+          employmentId: employment.id,
+          templateId,
+          position,
+          title: str(form, g("title")).slice(0, 150) || role,
+          role,
+          domainKey,
+          subdomain,
+          responsibilities,
+          outcomes: lines(form, g("outcomes")),
+          startDate: start,
+          endDate: end,
+          clientConfirmed: confirmed,
+        };
+        const project = projectId ? await prisma.project.update({ where: { id: projectId, candidateId }, data }) : await prisma.project.create({ data });
+        const ids = [...new Set([...techIds, ...(await resolveCustomTechs(custom))])];
+        await prisma.projectTechnology.deleteMany({ where: { projectId: project.id } });
+        if (ids.length) {
+          await prisma.projectTechnology.createMany({ data: ids.map((technologyId) => ({ projectId: project.id, technologyId, confirmed, evidence: "Confirmed by user in project editor" })) });
+        }
+        await audit(user.id, projectId ? "project.update" : "project.create", "Project", project.id);
+        saved++;
+      } catch (e) {
+        problems.push(`${label}: ${e instanceof Error ? e.message : "could not be saved"}.`);
+      }
+    }
+    // Auto-created employment records follow their projects' dates (and disappear when unused).
+    await prisma.employment.deleteMany({ where: { candidateId, evidence: "Entered with project", projects: { none: {} } } });
+    const autos = await prisma.employment.findMany({ where: { candidateId, evidence: "Entered with project" }, include: { projects: { select: { startDate: true, endDate: true } } } });
+    for (const e of autos) {
+      const startDate = new Date(Math.min(...e.projects.map((p) => p.startDate.getTime())));
+      const endDate = e.projects.some((p) => !p.endDate) ? null : new Date(Math.max(...e.projects.map((p) => p.endDate!.getTime())));
+      await prisma.employment.update({ where: { id: e.id }, data: { startDate, endDate } });
+    }
+    if (!saved && !problems.length) throw new Error("Fill in at least one project (client, dates and technologies).");
+  });
+  if (problems.length) redirect(withMessage(back, "error", `${saved} project(s) saved. Please fix: ${problems.join(" ")}`));
+  redirect(`/resumes/new?${state.toString()}&step=4&ok=${encodeURIComponent(`${saved} project(s) saved.`)}`);
+}

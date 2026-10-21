@@ -36,7 +36,11 @@ export default async function TechnologiesPage({ searchParams }: { searchParams:
             <tbody>
               {techs.map((t) => (
                 <tr key={t.id}>
-                  <td>{t.canonicalName}{t.lifecycle !== "ACTIVE" && <span className="badge neutral"> {t.lifecycle.toLowerCase()}</span>}</td>
+                  <td>
+                    <strong>{t.canonicalName}</strong>{t.lifecycle !== "ACTIVE" && <span className="badge neutral"> {t.lifecycle.toLowerCase()}</span>}
+                    {t.description && <div className="small muted">{t.description}</div>}
+                    {t.knowledge && <div className="small">{Object.values(t.knowledge as Record<string, string[]>).reduce((n, l) => n + l.length, 0)} expert phrasings</div>}
+                  </td>
                   <td className="small">{t.category}</td>
                   <td className="small muted">{strs(t.aliases).join(", ") || "—"}</td>
                   <td className="small">{t.availableFrom ?? "—"}</td>

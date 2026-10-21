@@ -1,6 +1,11 @@
 // Technology catalog (spec §8.3): canonical names, aliases, categories and role/domain mappings.
 // `availableFrom` is an approximate first year of general availability, used only for warnings.
 
+import { EXTRA_BA_PM } from "./tech-knowledge/ba-pm";
+import { EXTRA_CLOUD_QA } from "./tech-knowledge/cloud-qa";
+import { EXTRA_DATA } from "./tech-knowledge/data";
+import { EXTRA_PLATFORMS } from "./tech-knowledge/platforms";
+
 export interface TechnologySeed {
   canonicalName: string;
   category: string;
@@ -17,7 +22,7 @@ const AWS = "AWS_ENGINEER";
 const QA = "QA_ENGINEER";
 const PM = "PROJECT_MANAGER";
 
-function t(
+export function t(
   canonicalName: string,
   category: string,
   aliases: string[] = [],
@@ -34,7 +39,7 @@ function t(
   };
 }
 
-export const TECHNOLOGIES: TechnologySeed[] = [
+const BASE_TECHNOLOGIES: TechnologySeed[] = [
   // Business analysis artefacts and practices
   t("BRD", "Business Analysis", ["business requirement document", "business requirements document", "business requirements documents", "brds"], { roles: [BA, PM] }),
   t("FRD", "Business Analysis", ["functional requirement document", "functional requirements document", "frds", "fsd", "functional specification"], { roles: [BA] }),
@@ -256,3 +261,6 @@ export const TECHNOLOGIES: TechnologySeed[] = [
   t("ISO ERC", "Domain Platforms", ["iso electronic rating content", "iso rating"], { domains: ["PC_INSURANCE"] }),
   t("Insurity", "Domain Platforms", [], { domains: ["PC_INSURANCE"] }),
 ];
+
+// Additional technologies added with the knowledge base (src/data/tech-knowledge).
+export const TECHNOLOGIES: TechnologySeed[] = [...BASE_TECHNOLOGIES, ...EXTRA_BA_PM, ...EXTRA_DATA, ...EXTRA_CLOUD_QA, ...EXTRA_PLATFORMS];

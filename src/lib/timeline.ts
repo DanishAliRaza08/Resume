@@ -230,3 +230,28 @@ export function outsideEmploymentWarnings(
         },
       ];
 }
+
+/**
+ * Suggested project dates for a stated number of years and projects, newest first (project 1 is
+ * current). Five projects use the default allocation above; other counts split the time evenly.
+ * Back-to-back ranges, so the merged timeline equals the stated years. Only a suggestion for the
+ * user to correct against the real engagements.
+ */
+export function suggestProjectDates(years: number, count: number, asOf: Date = today()): { start: string; end: string | null }[] {
+  const n = Math.max(1, Math.min(10, Math.round(count)));
+  const months = Math.max(n, Math.round(Math.max(0.5, Math.min(45, years)) * 12));
+  const thisMonth = new Date(Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), 1));
+  const careerStart = addMonths(thisMonth, -(months - 1));
+  if (n === 5) return proposeProjectRanges(careerStart, null, { asOf }).ranges.map((r) => ({ start: r.start, end: r.end }));
+  const out: { start: string; end: string | null }[] = [];
+  let cursor = thisMonth; // first month of the newer project
+  let end: Date | null = null;
+  for (let i = 0; i < n; i++) {
+    const len = Math.floor(months / n) + (i < months % n ? 1 : 0);
+    const start = addMonths(cursor, -(len - 1));
+    out.push({ start: isoDate(start), end: end ? isoDate(end) : null });
+    end = new Date(start.getTime() - DAY);
+    cursor = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+  }
+  return out;
+}

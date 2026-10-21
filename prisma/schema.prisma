@@ -106,6 +106,7 @@ model User {
   jobDescriptions JobDescription[]
   applications   JobApplication[]
   auditEvents    AuditEvent[]
+  resumeSamples  ResumeSample[]
 }
 
 model Session {
@@ -193,6 +194,8 @@ model Technology {
   projectTypes  Json
   availableFrom Int?     // first year generally available, for anachronism warnings
   lifecycle     String   @default("ACTIVE")
+  description   String?  @db.Text // what the technology is (knowledge base)
+  knowledge     Json?    // senior-level bullet phrasing per role key (knowledge base)
   createdAt     DateTime @default(now())
   clientLinks   ClientTechnology[]
   projectLinks  ProjectTechnology[]
@@ -605,4 +608,22 @@ model JobApplication {
   @@unique([candidateId, jobKey])
   @@index([ownerId, status])
   @@index([appliedAt])
+}
+
+// Resumes uploaded for enhancement, kept (with contact details removed) as a growing library of
+// real-world bullet phrasing by domain and role. Library bullets are only ever offered as
+// suggestions that need confirmation, and only when the tools they mention were selected.
+model ResumeSample {
+  id          String   @id @default(cuid())
+  domainKey   String
+  roleKey     String
+  sourceName  String   @db.VarChar(255)
+  text        String   @db.LongText
+  bullets     Json
+  bulletCount Int      @default(0)
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([domainKey, roleKey])
 }

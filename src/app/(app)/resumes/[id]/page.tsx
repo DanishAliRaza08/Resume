@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/Badges";
 import { Denied } from "@/components/Denied";
+import { AutoDownload, DownloadChooser } from "@/components/DownloadChooser";
 import { Flash } from "@/components/Flash";
 import { ResumeEditor } from "@/components/ResumeEditor";
 import { ResumePreview } from "@/components/ResumePreview";
@@ -60,13 +61,21 @@ export default async function ResumePage({ params, searchParams }: { params: Pro
           </p>
         </div>
         <div className="actions">
+          {can(user, "resume:export") && (
+            <DownloadChooser action={exportFile} resumeId={id} versionId={current.id} designKey={design.key} designs={DESIGNS.map((d) => ({ key: d.key, name: d.name }))} />
+          )}
           {versions.length > 1 && <Link className="btn" href={`/resumes/${id}/compare?a=${parent?.id ?? versions[1].id}&b=${current.id}`}>Compare</Link>}
           {writable && jds.length > 0 && <Link className="btn" href={`/jd?resumeVersion=${current.id}`}>Tailor to a JD</Link>}
           {writable && <Link className="btn" href={`/resumes/new?candidateId=${candidate.id}&domainKey=${resume.domainKey}&roleKey=${resume.roleKey}&step=3`}>Regenerate</Link>}
         </div>
       </div>
       <Flash searchParams={sp} />
-      {sp.download && <div className="notice info">Your file is ready: <a href={`/api/exports/${sp.download}`}>download</a>.</div>}
+      {sp.download && (
+        <div className="notice info">
+          <AutoDownload exportId={sp.download} />
+          Your download should start by itself. If it doesn&apos;t, <a href={`/api/exports/${sp.download}`}><strong>tap here to download</strong></a>.
+        </div>
+      )}
       {current.status === "REJECTED" && current.reviewNote && <div className="notice bad">Rejected: {current.reviewNote}. Edit and save to create a new draft.</div>}
       {approved && writable && <div className="notice info">This version is final. Saving edits creates a new draft version; this one stays recoverable.</div>}
 
@@ -86,28 +95,13 @@ export default async function ResumePage({ params, searchParams }: { params: Pro
         </div>
 
         <aside>
-          {can(user, "resume:export") && (
+          {exportsList.length > 0 && (
             <section className="card">
-              <h2>Download</h2>
-              <form action={exportFile} className="stack">
-                <input type="hidden" name="resumeId" value={id} /><input type="hidden" name="versionId" value={current.id} />
-                <label htmlFor="exportDesign">Design</label>
-                <select id="exportDesign" name="design" defaultValue={design.key}>
-                  {DESIGNS.map((d) => <option key={d.key} value={d.key}>{d.name}</option>)}
-                </select>
-                <label className="check"><input type="radio" name="spacing" value="normal" defaultChecked /> Normal spacing</label>
-                <label className="check"><input type="radio" name="spacing" value="compact" /> Compact spacing (fits more per page)</label>
-                <div className="actions">
-                  <button className="btn primary" type="submit" name="format" value="PDF">Download PDF</button>
-                  <button className="btn" type="submit" name="format" value="DOCX">Download Word</button>
-                </div>
-              </form>
+              <h2>Downloaded files</h2>
+              <ul className="small clean stack">
+                {exportsList.map((e) => <li key={e.id}><a href={`/api/exports/${e.id}`}>{e.fileName}</a> · {e.pageCount ?? "?"} pp · {fmtDateTime(e.createdAt)}</li>)}
+              </ul>
               {report.counts.critical > 0 && <p className="hint">Tip: {report.counts.critical} item(s) under Checks still need attention before this resume is final.</p>}
-              {exportsList.length > 0 && (
-                <ul className="small clean stack" style={{ marginTop: 10 }}>
-                  {exportsList.map((e) => <li key={e.id}><a href={`/api/exports/${e.id}`}>{e.fileName}</a> · {e.pageCount ?? "?"} pp · {fmtDateTime(e.createdAt)}</li>)}
-                </ul>
-              )}
             </section>
           )}
 

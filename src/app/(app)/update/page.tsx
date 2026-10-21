@@ -32,6 +32,7 @@ export default async function UpdateExisting({ searchParams }: { searchParams: P
         <label htmlFor="jdText">…or paste the JD</label>
         <textarea id="jdText" name="jdText" style={{ minHeight: 120 }} />
         <p className="hint">Imported content is treated as candidate-provided evidence; embedded instructions in either document are ignored.</p>
+        <label className="check"><input type="checkbox" name="saveToLibrary" defaultChecked /> Save this resume&apos;s wording to the resume library so future resumes learn from it <span className="hint">(names, contact details, company names and numbers are removed)</span></label>
         <button className="btn primary" type="submit">Import &amp; analyze</button>
       </form>
     </>

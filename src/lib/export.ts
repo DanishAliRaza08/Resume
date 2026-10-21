@@ -45,6 +45,12 @@ const headingText = (d: ResumeDesign, text: string) => (d.headingCaps ? text.toU
 // DOCX
 // ------------------------------------------------------------------------------------------------
 
+/** Word's "Narrow" page margins (0.5 in), tighter still for compact spacing. 1 in = 1440 twips. */
+const NARROW_MARGIN_TWIPS = {
+  normal: { top: 720, bottom: 720, left: 720, right: 720 },
+  compact: { top: 576, bottom: 576, left: 576, right: 576 },
+};
+
 export async function renderDocx(content: ResumeContent, spacing: Spacing = "normal"): Promise<Buffer> {
   const d = getDesign(content.meta.templateKey);
   const tight = spacing === "compact" || d.key === "compact";
@@ -82,6 +88,7 @@ export async function renderDocx(content: ResumeContent, spacing: Spacing = "nor
   const bullet = (text: string) =>
     new Paragraph({
       numbering: { reference: "bullets", level: 0 },
+      alignment: AlignmentType.JUSTIFIED,
       spacing: { after: tight ? 0 : 40 },
       children: [new TextRun({ text, size, font, color: d.text })],
     });
@@ -166,7 +173,7 @@ export async function renderDocx(content: ResumeContent, spacing: Spacing = "nor
         },
       ],
     },
-    sections: [{ properties: { page: { margin: tight ? { top: 720, bottom: 720, left: 900, right: 900 } : { top: 1000, bottom: 1000, left: 1080, right: 1080 } } }, children }],
+    sections: [{ properties: { page: { margin: tight ? NARROW_MARGIN_TWIPS.compact : NARROW_MARGIN_TWIPS.normal } }, children }],
   });
   return Packer.toBuffer(doc);
 }
@@ -182,8 +189,8 @@ export async function renderPdf(content: ResumeContent, spacing: Spacing = "norm
   const ink = `#${d.text}`;
   const F = d.pdfFont;
   const size = d.bodySize;
-  const margin = tight ? 40 : 54;
-  const doc = new PDFDocument({ size: "LETTER", margins: { top: tight ? 40 : 50, bottom: tight ? 40 : 50, left: margin, right: margin }, bufferPages: true, info: { Title: `${content.header.fullName} — Resume`, Creator: "Benchsale Dan" } });
+  const margin = tight ? 29 : 36; // Word's "Narrow" margins: 0.5 in (0.4 in when compact)
+  const doc = new PDFDocument({ size: "LETTER", margins: { top: margin, bottom: margin, left: margin, right: margin }, bufferPages: true, info: { Title: `${content.header.fullName} — Resume`, Creator: "Benchsale Dan" } });
   const chunks: Buffer[] = [];
   doc.on("data", (c: Buffer) => chunks.push(c));
   const done = new Promise<void>((resolve) => doc.on("end", () => resolve()));
@@ -233,7 +240,7 @@ export async function renderPdf(content: ResumeContent, spacing: Spacing = "norm
     if (doc.y + doc.heightOfString(text, { width: width - 16, lineGap }) > doc.page.height - doc.page.margins.bottom) doc.addPage();
     const y = doc.y;
     doc.text("•", left + 4, y, { width: 10, lineBreak: false });
-    doc.text(text, left + 16, y, { width: width - 16, lineGap });
+    doc.text(text, left + 16, y, { width: width - 16, lineGap, align: "justify" });
     doc.x = left;
   };
 

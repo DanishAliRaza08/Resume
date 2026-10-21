@@ -105,7 +105,13 @@ export async function buildInput(req: ResumeRequest): Promise<GenerationInput> {
       template: p.template ? { name: p.template.name, domainBullets: strs(p.template.domainBullets), projectBullets: strs(p.template.projectBullets), qaBullets: strs(p.template.qaBullets) } : null,
     });
   }
+  const techKnowledge: Record<string, Partial<Record<string, string[]>>> = {};
+  for (const p of selected) for (const t of p.technologies) if (t.technology.knowledge) techKnowledge[t.technology.canonicalName] = t.technology.knowledge as Partial<Record<string, string[]>>;
+  const samples = await prisma.resumeSample.findMany({ where: { domainKey: req.domainKey, roleKey: req.roleKey }, orderBy: { createdAt: "desc" }, take: 100, select: { bullets: true } });
+  const libraryBullets = [...new Set(samples.flatMap((s) => strs(s.bullets)))];
   return {
+    techKnowledge,
+    libraryBullets,
     candidate: { fullName: candidate.fullName, email: candidate.email, phone: candidate.phone, location: candidate.location, linkedin: candidate.linkedin, targetTitle: req.targetTitle },
     domain: { key: domain.key, name: domain.name, industryPhrase },
     role: { key: role.key, name: role.name, skillCategories: strs(role.skillCategories), summaryFocus: strs(role.summaryFocus), includeQaBullets: role.includeQaBullets },
